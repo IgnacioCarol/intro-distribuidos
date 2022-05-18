@@ -32,6 +32,7 @@ reformat:
 	black --diff *.py
 	black --diff src/*/*.py
 	black *.py
+	black src/*/*.py
 	flake8
 
 .PHONY: all venv run clean

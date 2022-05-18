@@ -1,14 +1,14 @@
 import argparse
 
 
-class UploadCLI:
-    """UPLOAD: Transferencia de un archivo del cliente hacia el servidor."""
+class DownloadCLI:
+    """DOWNLOAD: Transferencia de un archivo del servidor hacia el cliente."""
 
     def __init__(self):
         self.parser = argparse.ArgumentParser(
-            prog="upload",
-            usage="upload [ - h ] [ - v | -q ] [ - H ADDR ] [ - p PORT ] [ - s FILEPATH ] [ - n FILENAME ]",
-            description="UPLOAD: Transferencia de un archivo del cliente hacia el servidor.",
+            prog="download",
+            usage="download [ - h ] [ - v | -q ] [ - H ADDR ] [ - p PORT ] [ - d FILEPATH ] [ - n FILENAME ]",
+            description="DOWNLOAD: Transferencia de un archivo del servidor hacia el cliente.",
         )
 
         self.parser.add_argument(
@@ -25,7 +25,7 @@ class UploadCLI:
 
         self.parser.add_argument("-p", "--port", action="store", help="server port")
 
-        self.parser.add_argument("-s", "--src", action="store", help="source file path")
+        self.parser.add_argument("-d", "--dst", action="store", help="source file path")
 
         self.parser.add_argument("-n", "--name", action="store", help="file name")
 
