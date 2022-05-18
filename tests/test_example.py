@@ -1,4 +1,4 @@
-import lib.example as example
+import src.lib.example as example
 
 
 def test_sum():
