@@ -1,0 +1,8 @@
+[flake8]
+ignore =
+exclude =
+    venv,
+    src/*/__pycache__,
+    .*
+max-complexity = 12
+max-line-length = 120
