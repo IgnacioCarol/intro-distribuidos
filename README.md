@@ -7,18 +7,6 @@
 
 ## Developer basic commands
 
-Create environment and install dependencies:
-
-``` bash
-make venv
-```
-
-clean environment
-
-``` bash
-make clean
-```
-
 Excecute unit tests with pytest
 
 ``` bash

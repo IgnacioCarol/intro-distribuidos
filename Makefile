@@ -13,7 +13,8 @@ venv: $(VENV)/bin/activate
 
 # Temporal run to try CLI
 run: venv
-	./venv/bin/python3 app.py 2 3  -v
+	./venv/bin/python3 app.py -p "433" -H "localhost"
+	./venv/bin/python3 app.py --help
 
 clean:
 	rm -rf $(VENV)
