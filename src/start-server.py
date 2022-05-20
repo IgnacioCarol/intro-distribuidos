@@ -3,6 +3,7 @@ import time
 import threading
 
 CHUNK_SIZE = 1024
+TIMEOUT = 3
 
 
 class _Server:
@@ -11,12 +12,15 @@ class _Server:
         self.addr = addr
         self.server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.file = file_name
+        self.server.settimeout(TIMEOUT)
 
     def receive(self):
         data = []
         self.server.sendto(b'its a me', self.addr)
-        while datachunk := self.server.recvfrom(CHUNK_SIZE):
+        while True:
+            datachunk = self.server.recvfrom(CHUNK_SIZE)
             data.append(datachunk[0])
+            
             self.server.sendto(b'ok', self.addr)
             if len(datachunk[0]) < CHUNK_SIZE:
                 print(len(datachunk[0]))

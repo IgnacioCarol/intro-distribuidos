@@ -4,6 +4,7 @@ import time
 TIMEOUT = 3
 BUFFER_SIZE = 1024
 
+
 class Client:
     def __init__(self, host: str, port: int, file_name):
         self.client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -12,8 +13,8 @@ class Client:
         self.client.settimeout(TIMEOUT)
         self.filename = file_name
 
-# Implemented with stop&wait
-# FixMe make it general for selective repeat
+    # Implemented with stop&wait
+    # FixMe make it general for selective repeat
     def send(self):
         print("client sending")
         s.client.sendto(bytes(f"upload {self.filename}", "utf-8"), (self.host, self.port))
@@ -22,8 +23,7 @@ class Client:
             data_to_send = f.read()
         i = 0
         while i < len(data_to_send):
-            self.client.sendto(data_to_send[i:i+1024], addr)
-            time.sleep(3)
+            self.client.sendto(data_to_send[i:i + 1024], addr)
             data, addr = self.client.recvfrom(BUFFER_SIZE)
             if data:
                 i += BUFFER_SIZE
