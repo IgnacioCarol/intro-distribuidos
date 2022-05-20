@@ -24,7 +24,10 @@ class Client:
         i = 0
         while i < len(data_to_send):
             self.client.sendto(data_to_send[i:i + 1024], addr)
-            data, addr = self.client.recvfrom(BUFFER_SIZE)
+            try:
+                data, addr = self.client.recvfrom(BUFFER_SIZE)
+            except socket.timeout:
+                continue
             if data:
                 i += BUFFER_SIZE
         print('esperando respuesta')

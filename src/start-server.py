@@ -1,5 +1,4 @@
 import socket
-import time
 import threading
 
 CHUNK_SIZE = 1024
@@ -20,13 +19,12 @@ class _Server:
         while True:
             datachunk = self.server.recvfrom(CHUNK_SIZE)
             data.append(datachunk[0])
-            
             self.server.sendto(b'ok', self.addr)
             if len(datachunk[0]) < CHUNK_SIZE:
-                print(len(datachunk[0]))
                 break
         with open(f"{self.storage}/{self.file}", "wb") as f:
             f.writelines(data)
+        print(f"file {self.file} written")
         self.server.sendto(b'finished', self.addr)
         while True:
             pass
@@ -48,12 +46,12 @@ class Server:
         while True:
             data, addr = self.server.recvfrom(CHUNK_SIZE)
             file_name = get_file_name(data)
-            print("server aceptado")
+            print("client accepted")
             mini_server = _Server(self.path, addr, file_name)
             t = threading.Thread(target=mini_server.receive, daemon=True)
             self.connections.add(t)
             t.start()
-            print("server disparado")
+            print("mini server fired")
 
 
 if __name__ == "__main__":
