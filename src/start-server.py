@@ -22,6 +22,7 @@ class _Uploader:
         print(f"file {self.file} written")
 
 
+# Fixme there is a border case where it could be repeated for the same adress multiple senders
 class _Downloader:
     def __init__(self, storage: str, addr, file_name: str):
         self.storage = storage
@@ -31,7 +32,7 @@ class _Downloader:
         self.server.settimeout(TIMEOUT)
 
     def method(self):
-        send_file_stop_wait(self.server, f"{self.storage}/{self.storage}", self.addr)
+        send_file_stop_wait(self.server, f"{self.storage}/{self.file}", self.addr)
         print(f"file finished to send")
 
 
