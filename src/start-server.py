@@ -1,11 +1,28 @@
 import socket
 import threading
+from typing import List
+
+from src.lib.errors import *
+from src.lib.send import receive_file_stop_wait, send_file_stop_wait
 
 CHUNK_SIZE = 1024
 TIMEOUT = 3
 
 
-class _Server:
+class _Uploader:
+    def __init__(self, storage: str, addr, file_name: str):
+        self.storage = storage
+        self.addr = addr
+        self.server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.file = file_name
+
+    def method(self):
+        self.server.sendto(b'its a me', self.addr)
+        receive_file_stop_wait(self.server, f"{self.storage}/{self.file}", self.addr, set())
+        print(f"file {self.file} written")
+
+
+class _Downloader:
     def __init__(self, storage: str, addr, file_name: str):
         self.storage = storage
         self.addr = addr
@@ -13,25 +30,16 @@ class _Server:
         self.file = file_name
         self.server.settimeout(TIMEOUT)
 
-    def receive(self):
-        data = []
-        self.server.sendto(b'its a me', self.addr)
-        while True:
-            datachunk = self.server.recvfrom(CHUNK_SIZE)
-            data.append(datachunk[0])
-            self.server.sendto(b'ok', self.addr)
-            if len(datachunk[0]) < CHUNK_SIZE:
-                break
-        with open(f"{self.storage}/{self.file}", "wb") as f:
-            f.writelines(data)
-        print(f"file {self.file} written")
-        self.server.sendto(b'finished', self.addr)
-        while True:
-            pass
+    def method(self):
+        send_file_stop_wait(self.server, f"{self.storage}/{self.storage}", self.addr)
+        print(f"file finished to send")
 
 
-def get_file_name(data: bytes) -> str:
-    return str(data, "utf-8").split()[-1]
+def get_data(data: bytes) -> List[str]:
+    data = str(data, "utf-8").split()
+    if len(data) != 2:
+        raise InvalidAmountOfParametersError(f"amount of parameters is {len(data)}")
+    return data
 
 
 class Server:
@@ -40,15 +48,26 @@ class Server:
         self.server.bind((host, port))
         self.path = storage
         self.connections = set()
+        self.classes = {"upload": _Uploader, "download": _Downloader}
 
     def listen(self):
         print("server started to listen")
         while True:
             data, addr = self.server.recvfrom(CHUNK_SIZE)
-            file_name = get_file_name(data)
+            try:
+                intention, file_name = get_data(data)
+                class_to_use = self.classes.get(intention)
+                if not class_to_use:
+                    raise InvalidIntentionError
+            except InvalidAmountOfParametersError:
+                self.server.sendto(b'invalid parameters', addr)
+                continue
+            except InvalidIntentionError:
+                self.server.sendto(b'invalid intention, should be upload or download', addr)
+                continue
             print("client accepted")
-            mini_server = _Server(self.path, addr, file_name)
-            t = threading.Thread(target=mini_server.receive, daemon=True)
+            mini_server = class_to_use(self.path, addr, file_name)
+            t = threading.Thread(target=mini_server.method, daemon=True)
             self.connections.add(t)
             t.start()
             print("mini server fired")
