@@ -22,7 +22,7 @@ class _Uploader:
         print(f"file {self.file} written")
 
 
-# Fixme there is a border case where it could be repeated for the same adress multiple senders
+# Fixme there is a border case where it could be repeated for the same address multiple senders
 class _Downloader:
     def __init__(self, storage: str, addr, file_name: str):
         self.storage = storage

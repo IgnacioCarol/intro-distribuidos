@@ -4,7 +4,7 @@ import uuid
 from typing import List
 
 BUFFER_SIZE = 1024
-SEPARATOR = b'-'
+SEPARATOR = b''
 ENDING_LIMIT = 10  # times to wait for the ack when finishing sending the file
 
 
@@ -29,9 +29,8 @@ def send_file_stop_wait(socket_connected, filename: str, address):
                     eof_counter += 1
                 print("timeouteo")
                 continue
-            if data:
-                key = uuid.uuid4().bytes
-                data_to_send = read_file(f, key)
+            key = uuid.uuid4().bytes
+            data_to_send = read_file(f, key)
 
 
 def read_file(f, key):
@@ -39,22 +38,18 @@ def read_file(f, key):
 
 
 def _get_message(message: bytes) -> List[bytes]:
-    data = message.split(SEPARATOR)
-    return [data[0], SEPARATOR.join(data[1:])]
+    return [message[:16], message[16:]]
 
 
 def receive_file_stop_wait(socket_connected, path: str, address, processed):
-    data = []
-    while True:
-        key, datachunk = _get_message(socket_connected.recvfrom(BUFFER_SIZE)[0])
-        socket_connected.sendto(key, address)
-        if key in processed:
-            continue
-        processed.add(key)
-        data.append(datachunk)
-        if len(datachunk) < BUFFER_SIZE - len(key) - len(SEPARATOR):
-            break
     with open(path, "wb") as f:
-        f.writelines(data)
+        while True:
+            key, datachunk = _get_message(socket_connected.recvfrom(BUFFER_SIZE)[0])
+            socket_connected.sendto(key, address)
+            if key in processed:
+                continue
+            processed.add(key)
+            f.write(datachunk)
+            if len(datachunk) < BUFFER_SIZE - len(key) - len(SEPARATOR):
+                break
     print(f"finished receiving and storing file at {path}")
-    return data
