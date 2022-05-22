@@ -1,4 +1,6 @@
 import socket
+
+from lib.errors import *
 from lib.send import receive_file_stop_wait
 
 BUFFER_SIZE = 1024
@@ -14,7 +16,10 @@ class Download:
 
     def receive(self):
         print("client receiving")
-        addr = self.connect("download")
+        try:
+            addr = self.connect("download")
+        except ServerNotAvailable as e:
+            return
         receive_file_stop_wait(s.client, f"{self.path}/{self.filename}", addr, set())
 
     def connect(self, intention: str) -> tuple:
@@ -26,7 +31,11 @@ class Download:
         while True:
             s.client.sendto(bytes(f"{intention} {self.filename}", "utf-8"), (self.host, self.port))
             try:
-                _, addr = s.client.recvfrom(1024)
+                data, addr = s.client.recvfrom(1024)
+                parsed_data =str(data, "utf-8")
+                if(parsed_data !=  'its a me'):
+                    print('Error: ' + parsed_data)
+                    raise ServerNotAvailable()
                 break
             except socket.timeout:
                 continue
@@ -34,5 +43,5 @@ class Download:
 
 
 if __name__ == "__main__":
-    s = Download("0.0.0.0", 80, "lorem_ipsum.txt", "./etc/downloaded")
+    s = Download("localhost", 80, "lorem_ipsum.txt", "./etc/downloaded")
     s.receive()

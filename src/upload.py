@@ -1,4 +1,6 @@
 import socket
+
+from lib.errors import *
 from lib.handler import InterruptHandler
 from lib.send import send_file_stop_wait
 
@@ -19,6 +21,8 @@ class Upload:
         try:
             addr = self.connect("upload")
             send_file_stop_wait(s.client, self.filename, addr)
+        except ServerNotAvailable as e:
+            return
         except Exception as e:
             return
 
@@ -31,7 +35,11 @@ class Upload:
         while True:
             s.client.sendto(bytes(f"{intention} {self.filename}", "utf-8"), (self.host, self.port))
             try:
-                _, addr = s.client.recvfrom(1024)
+                data, addr = s.client.recvfrom(1024)
+                parsed_data =str(data, "utf-8")
+                if(parsed_data !=  'its a me'):
+                    print('Error: ' + parsed_data)
+                    raise ServerNotAvailable()
                 break
             except socket.timeout:
                 continue
@@ -43,6 +51,6 @@ class Upload:
 
 if __name__ == "__main__":
     with InterruptHandler() as handler:
-        s = Upload("0.0.0.0", 80, "lorem_ipsum.txt")
+        s = Upload("localhost", 80, "lorem_ipsum.txt")
         handler.listener(s.close)
         s.send()
