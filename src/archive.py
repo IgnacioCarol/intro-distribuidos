@@ -40,13 +40,13 @@ class Archive:
 		if ip not in tup[0]:
 			self.lock.release()
 			raise FileNotOwnedError()
-		if tup[1] <= 1: 
+		if tup[1] <= 1:
 			del self.ip_by_file[file_name]
 		else:
 			tup[0].remove(ip)
 			self.ip_by_file[file_name] = (tup[0] , tup[1] - 1)
 		self.lock.release()
-		
+
 	def clear(self):
 		self.lock.acquire()
 		self.ip_by_file.clear()
