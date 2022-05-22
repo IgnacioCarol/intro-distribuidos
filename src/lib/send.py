@@ -1,10 +1,11 @@
 import socket
+from time import sleep
 import uuid
 
 from typing import List
 
 BUFFER_SIZE = 1024
-SEPARATOR = b''
+SEPARATOR = b""
 ENDING_LIMIT = 10  # times to wait for the ack when finishing sending the file
 
 
@@ -18,6 +19,7 @@ def send_file_stop_wait(socket_connected, filename: str, address):
         key = uuid.uuid4().bytes
         data_to_send = read_file(f, key)
         while data_to_send:
+            sleep(5)
             msg = write_message(key, data_to_send)
             socket_connected.sendto(msg, address)
             try:

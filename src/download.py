@@ -1,5 +1,5 @@
 import socket
-from src.lib.send import receive_file_stop_wait
+from lib.send import receive_file_stop_wait
 
 BUFFER_SIZE = 1024
 

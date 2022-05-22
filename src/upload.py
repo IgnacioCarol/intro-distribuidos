@@ -1,5 +1,6 @@
 import socket
-from src.lib.send import send_file_stop_wait
+from lib.handler import InterruptHandler
+from lib.send import send_file_stop_wait
 
 TIMEOUT = 3
 BUFFER_SIZE = 1024
@@ -15,8 +16,11 @@ class Upload:
 
     def send(self):
         print("client sending")
-        addr = self.connect("upload")
-        send_file_stop_wait(s.client, self.filename, addr)
+        try:
+            addr = self.connect("upload")
+            send_file_stop_wait(s.client, self.filename, addr)
+        except Exception as e:
+            return
 
     def connect(self, intention: str) -> tuple:
         """
@@ -33,7 +37,12 @@ class Upload:
                 continue
         return addr
 
+    def close(self):
+        print("El cliente se esta cerrando")
+        s.client.close()
 
 if __name__ == "__main__":
-    s = Upload("0.0.0.0", 80, "lorem_ipsum.txt")
-    s.send()
+    with InterruptHandler() as handler:
+        s = Upload("0.0.0.0", 80, "lorem_ipsum.txt")
+        handler.listener(s.close)
+        s.send()
