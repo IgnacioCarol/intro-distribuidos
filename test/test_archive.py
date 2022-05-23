@@ -1,4 +1,4 @@
-import src.archive as archive
+import src.lib.archive as archive
 import threading
 import unittest
 

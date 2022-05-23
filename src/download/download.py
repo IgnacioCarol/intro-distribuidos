@@ -20,7 +20,7 @@ class Download:
             addr = self.connect("download")
         except lib_errors.ServerNotAvailable:
             return
-        receive_file_stop_wait(s.client, f"{self.path}/{self.filename}", addr, set())
+        receive_file_stop_wait(self.client, f"{self.path}/{self.filename}", addr, set())
 
     def connect(self, intention: str) -> tuple:
         """
@@ -29,11 +29,11 @@ class Download:
         """
         addr = ()
         while True:
-            s.client.sendto(
+            self.client.sendto(
                 bytes(f"{intention} {self.filename}", "utf-8"), (self.host, self.port)
             )
             try:
-                data, addr = s.client.recvfrom(1024)
+                data, addr = self.client.recvfrom(1024)
                 parsed_data = str(data, "utf-8")
                 if parsed_data != "its a me":
                     print("Error: " + parsed_data)
@@ -42,8 +42,3 @@ class Download:
             except socket.timeout:
                 continue
         return addr
-
-
-if __name__ == "__main__":
-    s = Download("127.0.0.1", 8080, "lorem_ipsum3.txt", "./etc/downloaded")
-    s.receive()

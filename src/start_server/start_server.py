@@ -1,8 +1,7 @@
 import socket
 import threading
-import archive as arc
+import lib.archive as arc
 from typing import List
-from lib.handler import InterruptHandler
 import lib.errors as lib_errors
 from lib.send import receive_file_stop_wait, send_file_stop_wait
 
@@ -138,10 +137,3 @@ class Server:
     def __joinConnections(self):
         for connection in self.connections:
             connection.join()
-
-
-if __name__ == "__main__":
-    with InterruptHandler() as handler:
-        s = Server("127.0.0.1", 8080)
-        handler.listener(s.close)
-        s.listen()

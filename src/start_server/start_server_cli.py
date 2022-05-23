@@ -24,6 +24,10 @@ class StartServerCLI:
         )
 
         self.parser.add_argument(
+            "-p", "--port", action="store", help="server port", type=int
+        )
+
+        self.parser.add_argument(
             "-s", "--storage", action="store", help="storage dir path"
         )
 

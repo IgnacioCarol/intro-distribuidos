@@ -32,7 +32,7 @@ reformat:
 	black *.py
 	black */*.py
 	black src/*/*.py
-	black tests/*.py
+	black test/*.py
 	flake8
 
 .PHONY: all venv run clean
