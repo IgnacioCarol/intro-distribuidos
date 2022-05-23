@@ -70,7 +70,7 @@ optional arguments:
 ```
 
 ``` bash
-$ python3 upload.py -H "0.0.0.0" -p 8080 -s "lorem_ipsum.txt"
+$ python3 upload.py -H "0.0.0.0" -p 8080 -n "lorem_ipsum.txt"
 ```
 
 ### Downloaded files
