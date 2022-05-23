@@ -29,10 +29,10 @@ test:
 # For exceptions change .flake file
 reformat:
 	echo "Reformatting with back"
-	black --diff *.py
-	black --diff src/*/*.py
 	black *.py
+	black */*.py
 	black src/*/*.py
+	black tests/*.py
 	flake8
 
 .PHONY: all venv run clean

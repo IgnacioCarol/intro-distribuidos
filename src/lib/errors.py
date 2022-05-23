@@ -5,5 +5,6 @@ class InvalidAmountOfParametersError(Exception):
 class InvalidIntentionError(Exception):
     pass
 
+
 class ServerNotAvailable(Exception):
     pass
