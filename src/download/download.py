@@ -1,10 +1,7 @@
 import socket
-
 import lib.errors as lib_errors
 from lib.send import receive_file_stop_wait
-
-BUFFER_SIZE = 1024
-
+from lib.protocol import *
 
 class Download:
     def __init__(self, host: str, port: int, file_name, path: str):
@@ -17,7 +14,7 @@ class Download:
     def receive(self):
         print("client receiving")
         try:
-            addr = self.connect("download")
+            addr = self.connect(MSG_INTENTION_DOWNLOAD)
         except lib_errors.ServerNotAvailable:
             return
         receive_file_stop_wait(self.client, f"{self.path}/{self.filename}", addr, set())
@@ -30,12 +27,12 @@ class Download:
         addr = ()
         while True:
             self.client.sendto(
-                bytes(f"{intention} {self.filename}", "utf-8"), (self.host, self.port)
+                bytes(f"{intention} {self.filename}", ENCODING), (self.host, self.port)
             )
             try:
-                data, addr = self.client.recvfrom(1024)
-                parsed_data = str(data, "utf-8")
-                if parsed_data != "its a me":
+                data, addr = self.client.recvfrom(BUFFER_SIZE)
+                parsed_data = str(data, ENCODING)
+                if parsed_data != MSG_CONNECTION_ACK:
                     print("Error: " + parsed_data)
                     raise lib_errors.ServerNotAvailable()
                 break

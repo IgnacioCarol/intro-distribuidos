@@ -1,23 +1,20 @@
 import socket
 import lib.errors as lib_errors
 from lib.send import send_file_stop_wait
-
-TIMEOUT = 3
-BUFFER_SIZE = 1024
-
+from lib.protocol import *
 
 class Upload:
     def __init__(self, host: str, port: int, file_name):
         self.client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.host = host
         self.port = port
-        self.client.settimeout(TIMEOUT)
+        self.client.settimeout(TIMEOUT_UPLOAD)
         self.filename = file_name
 
     def send(self):
         print("client sending")
         try:
-            addr = self.connect("upload")
+            addr = self.connect(MSG_INTENTION_UPLOAD)
             send_file_stop_wait(self.client, self.filename, addr)
         except lib_errors.ServerNotAvailable:
             return
@@ -32,12 +29,12 @@ class Upload:
         addr = ()
         while True:
             self.client.sendto(
-                bytes(f"{intention} {self.filename}", "utf-8"), (self.host, self.port)
+                bytes(f"{intention} {self.filename}", ENCODING), (self.host, self.port)
             )
             try:
                 data, addr = self.client.recvfrom(1024)
-                parsed_data = str(data, "utf-8")
-                if parsed_data != "its a me":
+                parsed_data = str(data, ENCODING)
+                if parsed_data != MSG_CONNECTION_ACK:
                     print("Error: " + parsed_data)
                     raise lib_errors.ServerNotAvailable()
                 break

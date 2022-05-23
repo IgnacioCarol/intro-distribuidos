@@ -4,11 +4,7 @@ import lib.archive as arc
 from typing import List
 import lib.errors as lib_errors
 from lib.send import receive_file_stop_wait, send_file_stop_wait
-
-CHUNK_SIZE = 1024
-TIMEOUT = 3
-TIMEOUT_UPLOAD = 15
-
+from lib.protocol import *
 
 class _Uploader:
     def __init__(self, storage: str, addr, file_name: str, archive):
@@ -22,13 +18,13 @@ class _Uploader:
     def method(self):
         try:
             if not self.archive.setOwnership(self.addr, self.file, True):
-                self.server.sendto(b"try later", self.addr)
+                self.server.sendto(bytes(ERROR_BUSY_FILE, ENCODING), self.addr)
                 return
         except arc.FileAlreadyOwnedError:
-            self.server.sendto(b"already served", self.addr)
+            self.server.sendto(bytes(ERROR_ALREADY_SERVED, ENCODING), self.addr)
             return
 
-        self.server.sendto(b"its a me", self.addr)
+        self.server.sendto(bytes(MSG_CONNECTION_ACK,ENCODING), self.addr)
         try:
             receive_file_stop_wait(
                 self.server, f"{self.storage}/{self.file}", self.addr, set()
@@ -59,17 +55,18 @@ class _Downloader:
         self.addr = addr
         self.server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.file = file_name
-        self.server.settimeout(TIMEOUT)
+        self.server.settimeout(TIMEOUT_DOWNLOAD)
         self.archive = archive
 
     def method(self):
         try:
             if not self.archive.setOwnership(self.addr, self.file, False):
-                self.server.sendto(b"try later", self.addr)
+                self.server.sendto(bytes(ERROR_BUSY_FILE, ENCODING), self.addr)
                 return
         except arc.FileAlreadyOwnedError:
-            self.server.sendto(b"already served", self.addr)
+            self.server.sendto(bytes(ERROR_ALREADY_SERVED, ENCODING), self.addr)
             return
+        self.server.sendto(bytes(MSG_CONNECTION_ACK,ENCODING), self.addr)
         send_file_stop_wait(self.server, f"{self.storage}/{self.file}", self.addr)
         print("file finished to send")
 
@@ -82,7 +79,7 @@ class _Downloader:
 
 
 def get_data(data: bytes) -> List[str]:
-    data = str(data, "utf-8").split()
+    data = str(data, ENCODING).split()
     if len(data) != 2:
         raise lib_errors.InvalidAmountOfParametersError(
             f"amount of parameters is {len(data)}"
@@ -96,7 +93,7 @@ class Server:
         self.server.bind((host, port))
         self.path = storage
         self.connections = set()
-        self.classes = {"upload": _Uploader, "download": _Downloader}
+        self.classes = {MSG_INTENTION_UPLOAD: _Uploader, MSG_INTENTION_DOWNLOAD: _Downloader}
         self.stoped = False
         self.archive = arc.Archive()
 
@@ -114,11 +111,11 @@ class Server:
                 if not class_to_use:
                     raise lib_errors.InvalidIntentionError
             except lib_errors.InvalidAmountOfParametersError:
-                self.server.sendto(b"invalid parameters", addr)
+                self.server.sendto(bytes(ERROR_INVALID_PARAMETERS, ENCODING), addr)
                 continue
             except lib_errors.InvalidIntentionError:
                 self.server.sendto(
-                    b"invalid intention, should be upload or download", addr
+                    bytes(ERROR_INVALID_INTENTION, ENCODING), addr
                 )
                 continue
             print("client accepted")
