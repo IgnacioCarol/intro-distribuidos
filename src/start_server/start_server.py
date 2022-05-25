@@ -2,7 +2,7 @@ import socket
 import threading
 import lib.archive as arc
 import lib.errors as lib_errors
-from lib.send import receive_file_stop_wait, send_file_stop_wait
+from lib.send import receive_file_select_and_repeat, send_file_select_and_repeat
 from lib.protocol import *
 from typing import List
 from os import path
@@ -35,7 +35,7 @@ class _Uploader:
 
         self.server.sendto(bytes(MSG_CONNECTION_ACK,ENCODING), self.addr)
         try:
-            receive_file_stop_wait(
+            receive_file_select_and_repeat(
                 self.server, f"{self.storage}/{self.file}", self.addr, set()
             )
         except socket.timeout:
@@ -79,7 +79,7 @@ class _Downloader:
             self.server.sendto(bytes(ERROR_NONEXISTENT_FILE, ENCODING), self.addr)
             return
         self.server.sendto(bytes(MSG_CONNECTION_ACK,ENCODING), self.addr)
-        send_file_stop_wait(self.server, f"{self.storage}/{self.file}", self.addr)
+        send_file_select_and_repeat(self.server, f"{self.storage}/{self.file}", self.addr)
         print("file finished to send")
         self._handle_release()
 

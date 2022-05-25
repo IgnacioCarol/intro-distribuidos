@@ -2,12 +2,13 @@ import socket
 import uuid
 import heapq
 import os
+from math import ceil
 from io import TextIOWrapper
 from msilib.schema import File
 from time import sleep
 from typing import List
 from lib.timer import RepeatingTimer
-from protocol import *
+from lib.protocol import *
 
 BUFFER_SIZE = 1024
 ENDING_LIMIT = 10  # times to wait for the ack when finishing sending the file
@@ -23,7 +24,7 @@ def send_file_stop_wait(socket_connected, filename: str, address):
         key = uuid.uuid4().bytes
         data_to_send = read_file(f, key)
         while data_to_send:
-            sleep(5)
+            #sleep(5)
             msg = write_message(key, data_to_send)
             socket_connected.sendto(msg, address)
             try:
@@ -59,15 +60,17 @@ def send_file_select_and_repeat(socket_connected: socket.socket, filename: str, 
         
         #To do: Put this logic in the conneciton ack (watchout infinite cycle)
         while True:
-            try:
+            try: 
                 msg = bytes(MSG_FILE_SIZE + str(os.stat(file_name).size()), ENCODING)
+                print(msg)
                 socket_connected.sendto(msg, address)
-                datachunk = socket_connected.recvfrom(BUFFER_SIZE)[0]
-                if(datachunk == MSG_FILE_SIZE_ACK)
+                datachunk = str(socket_connected.recvfrom(BUFFER_SIZE)[0], ENCODING)
+                if(datachunk == MSG_FILE_SIZE_ACK):
                     break
             except socket.timeout:
                 print("timeouteo")
 
+        print("comienzo a mandar")
         while data_to_send and last_chunk_sent < WINDOW_SIZE:
             _send_data(timers, socket_connected, address, data_to_send, last_chunk_sent)
             data_to_send = read_file(f, last_chunk_sent)
@@ -87,7 +90,7 @@ def send_file_select_and_repeat(socket_connected: socket.socket, filename: str, 
                     break
                 if len(msg) < BUFFER_SIZE - len(key):
                     eof_counter += 1
-                print("timeouteo")
+                print("timeouteo2")
 
             for i in range(WINDOW_SIZE - len(timers)):
                 _send_data(timers, socket_connected, address, data_to_send, last_chunk_sent)
@@ -120,21 +123,25 @@ def receive_file_select_and_repeat(socket_connected, path: str, address, process
     wanted_seq_number = 0
     recv_buffer = []
     file_len = 0 
-    heapq.heapify(recv_buffers)
+    heapq.heapify(recv_buffer)
 
     while True:
         #To do: Put this logic in the conneciton ack
         try:
             datachunk = socket_connected.recvfrom(BUFFER_SIZE)[0]
-            if(datachunk[:len(MSG_FILE_SIZE)] == MSG_FILE_SIZE):
-                file_len = int(datachunk[len(MSG_FILE_SIZE):])/CHUNK_SIZE
+            print(datachunk)
+            if(datachunk[:len(MSG_FILE_SIZE)] == bytes(MSG_FILE_SIZE, ENCODING)):
+                datachunk = int(datachunk[len(MSG_FILE_SIZE):])
+                file_len = ceil(datachunk/CHUNK_SIZE)
                 socket_connected.sendto(bytes(MSG_FILE_SIZE_ACK, ENCODING), address)
+                break
         except socket.timeout:
             print("timeouteo")
             return
 
+    print("comienzo a recibir")
     while data_to_send:
-        sleep(5)
+        #sleep(5)
         msg = write_message(key, data_to_send)
         socket_connected.sendto(msg, address)
 
@@ -152,7 +159,7 @@ def receive_file_select_and_repeat(socket_connected, path: str, address, process
                         f.write(heapq.heappop(recv_buffers)[1])
                         wanted_seq_number = seq_number + 1
             except socket.timeout:
-                print("timeouteo")
+                print("timeouteo2")
             key = bytes(f'{wanted_seq_number:{PADDING}>{SEQ_LEN}}', ENCODING)
             socket_connected.sendto(key, address)
     print(f"finished receiving and storing file at {path}")

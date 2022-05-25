@@ -1,6 +1,6 @@
 import socket
 import lib.errors as lib_errors
-from lib.send import send_file_stop_wait
+from lib.send import *
 from lib.protocol import *
 
 class Upload:
@@ -15,7 +15,7 @@ class Upload:
         print("client sending")
         try:
             addr = self.connect(MSG_INTENTION_UPLOAD)
-            send_file_stop_wait(self.client, self.filename, addr)
+            send_file_select_and_repeat(self.client, self.filename, addr)
         except lib_errors.ServerNotAvailable:
             return
         except (FileNotFoundError, IOError) as e:
