@@ -18,7 +18,12 @@ class Upload:
             send_file_stop_wait(self.client, self.filename, addr)
         except lib_errors.ServerNotAvailable:
             return
-        except Exception:
+        except (FileNotFoundError, IOError) as e:
+            raise e
+            print('Error: El archivo solicitado no existe')
+            return
+        except Exception as e:
+            print('Error: Se recibió una excepción no manejada')
             return
 
     def connect(self, intention: str) -> tuple:

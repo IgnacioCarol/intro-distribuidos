@@ -1,10 +1,11 @@
 import socket
 import threading
 import lib.archive as arc
-from typing import List
 import lib.errors as lib_errors
 from lib.send import receive_file_stop_wait, send_file_stop_wait
 from lib.protocol import *
+from typing import List
+from os import path
 
 class _Uploader:
     def __init__(self, storage: str, addr, file_name: str, archive):
@@ -14,6 +15,14 @@ class _Uploader:
         self.file = file_name
         self.server.settimeout(TIMEOUT_UPLOAD)
         self.archive = archive
+
+    def _handle_release(self):
+        try:
+            self.archive.releaseOwnership(self.addr, self.file)
+        except arc.FileNotInArchiveError:
+            print("Error: FileNotInArchiveError")
+        except arc.FileNotOwnedError:
+            print("Error: FileNotOwnedError")
 
     def method(self):
         try:
@@ -31,21 +40,11 @@ class _Uploader:
             )
         except socket.timeout:
             print("se manejo timeout en upload del server")
-            try:
-                self.archive.releaseOwnership(self.addr, self.file)
-            except arc.FileNotInArchiveError:
-                print("Error: FileNotInArchiveError")
-            except arc.FileNotOwnedError:
-                print("Error: FileNotOwnedError")
+            self._handle_release()
             return
-        print(f"file {self.file} written")
 
-        try:
-            self.archive.releaseOwnership(self.addr, self.file)
-        except arc.FileNotInArchiveError:
-            print("Error: FileNotInArchiveError")
-        except arc.FileNotOwnedError:
-            print("Error: FileNotOwnedError")
+        print(f"file {self.file} written")
+        self._handle_release()
 
 
 # Fixme there is a border case where it could be repeated for the same address multiple senders
@@ -58,6 +57,14 @@ class _Downloader:
         self.server.settimeout(TIMEOUT_DOWNLOAD)
         self.archive = archive
 
+    def _handle_release(self):
+        try:
+            self.archive.releaseOwnership(self.addr, self.file)
+        except arc.FileNotInArchiveError:
+            print("Error: FileNotInArchiveError")
+        except arc.FileNotOwnedError:
+            print("Error: FileNotOwnedError")
+
     def method(self):
         try:
             if not self.archive.setOwnership(self.addr, self.file, False):
@@ -66,16 +73,15 @@ class _Downloader:
         except arc.FileAlreadyOwnedError:
             self.server.sendto(bytes(ERROR_ALREADY_SERVED, ENCODING), self.addr)
             return
+
+        if not path.exists(self.file):
+            self._handle_release()
+            self.server.sendto(bytes(ERROR_NONEXISTENT_FILE, ENCODING), self.addr)
+            return
         self.server.sendto(bytes(MSG_CONNECTION_ACK,ENCODING), self.addr)
         send_file_stop_wait(self.server, f"{self.storage}/{self.file}", self.addr)
         print("file finished to send")
-
-        try:
-            self.archive.releaseOwnership(self.addr, self.file)
-        except arc.FileNotInArchiveError:
-            print("Error: FileNotInArchiveError")
-        except arc.FileNotOwnedError:
-            print("Error: FileNotOwnedError")
+        self._handle_release()
 
 
 def get_data(data: bytes) -> List[str]:
