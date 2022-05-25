@@ -1,11 +1,11 @@
 import socket
-from time import sleep
 import uuid
-import time
-
+from io import TextIOWrapper
+from msilib.schema import File
+from time import sleep
 from typing import List
+from lib.timer import RepeatingTimer
 from protocol import *
-from threading import Timer
 
 BUFFER_SIZE = 1024
 SEPARATOR = b""
@@ -42,25 +42,22 @@ def _send_callback(socket_connected, address, data_to_send, key):
     msg = write_message(bytes(key, ENCODING), data_to_send)
     socket_connected.sendto(msg, address)
 
+def _send_data(timers: List[RepeatingTimer], socket_connected: socket.socket, address: str, data_to_send: str, last_chunk_sent: int):
+    _send_callback(socket_connected, address, data_to_send, last_chunk_sent)
+    timers.append(RepeatingTimer(10.0, _send_callback, [socket_connected, address, data_to_send, last_chunk_sent]))
+    timers[-1].start()
 
-def send_file_select_and_repeat(socket_connected: socket.socket, filename: str, address):
-
+def send_file_select_and_repeat(socket_connected: socket.socket, filename: str, address: str):
 #   socket_connected.setblocking(False)
-    eof_counter = 0
-
     with open(filename, "rb") as f:
-
-        key = uuid.uuid4().bytes
-        data_to_send = read_file(f, key)
-
         timers = []
         last_chunk_sent = 0
         latest_ack = 0
+        data_to_send = read_file(f, last_chunk_sent)
 
         while data_to_send and last_chunk_sent < WINDOW_SIZE:
-            _send_callback(socket_connected, address, data_to_send, last_chunk_sent)
-            timers.append(Timer(10.0, _send_callback, [socket_connected, address, data_to_send, last_chunk_sent]))
-            timers[-1].start()
+            _send_data(timers, socket_connected, address, data_to_send, last_chunk_sent)
+            data_to_send = read_file(f, last_chunk_sent)
             last_chunk_sent += 1
 
         while data_to_send:
@@ -76,23 +73,20 @@ def send_file_select_and_repeat(socket_connected: socket.socket, filename: str, 
                 continue
 
             for i in range(WINDOW_SIZE - len(timers)):
-                _send_callback(socket_connected, address, data_to_send, last_chunk_sent)
-                timers.append(Timer(10.0, _send_callback, [socket_connected, address, data_to_send, last_chunk_sent]))
-                timers[-1].start()
+                _send_data(timers, socket_connected, address, data_to_send, last_chunk_sent)
+                data_to_send = read_file(f, last_chunk_sent)
                 last_chunk_sent += 1
 
-def read_file(f, key):
+def read_file(f: TextIOWrapper, key):
     return f.read(BUFFER_SIZE - len(key) - len(SEPARATOR))
 
-
-def _get_message(message: bytes) -> List[bytes]:
+def _get_message_stop_wait(message: bytes) -> List[bytes]:
     return [message[:16], message[16:]]
-
 
 def receive_file_stop_wait(socket_connected, path: str, address, processed):
     with open(path, "wb") as f:
         while True:
-            key, datachunk = _get_message(socket_connected.recvfrom(BUFFER_SIZE)[0])
+            key, datachunk = _get_message_stop_wait(socket_connected.recvfrom(BUFFER_SIZE)[0])
             socket_connected.sendto(key, address)
             if key in processed:
                 continue
