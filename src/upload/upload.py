@@ -21,16 +21,16 @@ class Upload:
         try:
             logging.info("[Upload] Client will try to connect...")
             addr = self.connect(lib_protocol.MSG_INTENTION_UPLOAD)
-            logging.info("[Upload] Client will start to send with select and repeat...")
-            lib_send._send(addr)
+            logging.info("[Upload] Client will start to send...")
+            self._send(addr)
         except lib_errors.ServerNotAvailable:
             logging.info("[Upload] ERROR: Server not available...")
             return
         except (FileNotFoundError, IOError) as e:
             logging.info("[Upload] ERROR: Client file not found.")
             raise e
-        except Exception:
-            logging.info("[Upload] ERROR: Unexpected exception.")
+        except Exception as e:
+            logging.info("[Upload] ERROR: Unexpected exception: {}.".format(e))
             return
 
     def connect(self, intention: str) -> tuple:

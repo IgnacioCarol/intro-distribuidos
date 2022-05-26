@@ -15,6 +15,7 @@ import logging
 
 
 class _Uploader:
+
     def __init__(self, storage: str, addr, file_name: str, archive):
         self.storage = storage
         self.addr = addr
@@ -22,6 +23,9 @@ class _Uploader:
         self.file = file_name
         self.server.settimeout(lib_protocol.TIMEOUT_UPLOAD)
         self.archive = archive
+
+    def _receive(self):
+        pass
 
     def _handle_release(self):
         try:
@@ -53,9 +57,7 @@ class _Uploader:
             bytes(lib_protocol.MSG_CONNECTION_ACK, lib_protocol.ENCODING), self.addr
         )
         try:
-            receive_file_select_and_repeat(
-                self.server, f"{self.storage}/{self.file}", self.addr, set()
-            )
+            self._receive()
         except socket.timeout:
             print("se manejo timeout en upload del server")
             self._handle_release()
@@ -74,6 +76,9 @@ class _Downloader:
         self.file = file_name
         self.server.settimeout(lib_protocol.TIMEOUT_DOWNLOAD)
         self.archive = archive
+
+    def _send(self):
+        pass
 
     def _handle_release(self):
         try:
@@ -109,9 +114,7 @@ class _Downloader:
         self.server.sendto(
             bytes(lib_protocol.MSG_CONNECTION_ACK, lib_protocol.ENCODING), self.addr
         )
-        send_file_select_and_repeat(
-            self.server, f"{self.storage}/{self.file}", self.addr
-        )
+        self._send()
         print("file finished to send")
         self._handle_release()
 
@@ -197,34 +200,35 @@ class Server:
 
 
 class _UploaderStopAndWait(_Uploader):
-    def _receive(self, addr):
+    def _receive(self):
         return receive_file_stop_wait(
-            self.client, f"{self.path}/{self.filename}", addr, set()
+            self.server, f"{self.storage}/{self.file}",  self.addr, set()
         )
 
 
 class _UploaderSelectAndRepeat(_Uploader):
-    def _receive(self, addr):
+    def _receive(self):
         return receive_file_select_and_repeat(
-            self.client, f"{self.path}/{self.filename}", addr, set()
+            self.server, f"{self.storage}/{self.file}",  self.addr, set()
         )
 
 
+
 class _DownloaderStopAndWait(_Downloader):
-    def _send(self, addr):
-        send_file_stop_and_wait(self.client, self.filename, addr)
+    def _send(self):
+        return send_file_stop_and_wait(self.server, f"{self.storage}/{self.file}", self.addr)
 
 
-class _DownloaderSelectAndRepeat(Server):
-    def _send(self, addr):
-        send_file_select_and_repeat(self.client, self.filename, addr)
+class _DownloaderSelectAndRepeat(_Downloader):
+    def _send(self):
+        return send_file_select_and_repeat(self.server, f"{self.storage}/{self.file}", self.addr)
 
 
 class ServerStopAndWait(Server):
     def __init__(self, host: str, port: int, storage: str = "./etc"):
 
         arquitecture = {
-            lib_protocol.MSG_INTENTION_UPLOAD: _UploaderSelectAndRepeat,
+            lib_protocol.MSG_INTENTION_UPLOAD: _UploaderStopAndWait,
             lib_protocol.MSG_INTENTION_DOWNLOAD: _DownloaderStopAndWait,
         }
         super().__init__(host, port, storage, arquitecture)

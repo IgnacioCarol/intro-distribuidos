@@ -28,7 +28,7 @@ class UploadCLI:
         )
 
         self.parser.add_argument(
-            "-s", "--src", action="store", help="source file path", required=True
+            "-s", "--src", action="store", help="source file path"
         )
 
         self.parser.add_argument(
