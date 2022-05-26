@@ -1,5 +1,5 @@
-
 from threading import Timer
+
 
 class RepeatingTimer(object):
     def __init__(self, interval, func, *args, **kwargs):
