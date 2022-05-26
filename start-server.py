@@ -1,11 +1,23 @@
 from src.start_server.start_server_cli import StartServerCLI
-from src.start_server.start_server import Server
+import src.start_server.start_server as server
 from src.lib.handler import InterruptHandler
+from src.lib.logger import Logger
+import logging
 
 
 if __name__ == "__main__":
     args = StartServerCLI().parse_args()
+    logger = Logger(args.verbose, args.quiet)
     with InterruptHandler() as handler:
-        s = Server(args.host, args.port, args.storage)
-        handler.listener(s.close)
-        s.listen()
+        if args.arquitecture == "select_and_repeat":
+            s = server.ServerSelectAndRepeat(args.host, args.port, args.storage)
+            handler.listener(s.close)
+            s.listen()
+        elif args.arquitecture == "stop_and_wait":
+            s = server.ServerStopAndWait(args.host, args.port, args.storage)  # TO-DO
+            handler.listener(s.close)
+            s.listen()
+        else:
+            logging.info(
+                "ERROR: Invalid arquitecture. Should be select_and_repeat or stop_and_wait"
+            )

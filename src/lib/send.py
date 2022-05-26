@@ -7,7 +7,7 @@ from io import TextIOWrapper
 from typing import List
 from lib.timer import RepeatingTimer
 import lib.protocol as lib_protocol
-
+import logging
 
 BUFFER_SIZE = 1024
 ENDING_LIMIT = 10  # times to wait for the ack when finishing sending the file
@@ -17,7 +17,7 @@ def write_message(key: bytes, message: bytes) -> bytes:
     return key + message
 
 
-def send_file_stop_wait(socket_connected, filename: str, address):
+def send_file_stop_and_wait(socket_connected, filename: str, address):
     eof_counter = 0
     with open(filename, "rb") as f:
         key = uuid.uuid4().bytes
@@ -29,11 +29,12 @@ def send_file_stop_wait(socket_connected, filename: str, address):
             try:
                 data, address = socket_connected.recvfrom(BUFFER_SIZE)
             except socket.timeout:
+                logging.info("timeout")
                 if eof_counter > ENDING_LIMIT:
                     break
                 if len(msg) < BUFFER_SIZE - len(key):
                     eof_counter += 1
-                print("timeouteo")
+
                 continue
             key = uuid.uuid4().bytes
             data_to_send = read_file(f, key)
@@ -91,7 +92,7 @@ def send_file_select_and_repeat(
                 if datachunk == lib_protocol.MSG_FILE_SIZE_ACK:
                     break
             except socket.timeout:
-                print("timeouteo")
+                print("send timeout")
 
         print("comienzo a mandar")
         while data_to_send and last_chunk_sent < lib_protocol.WINDOW_SIZE:
@@ -114,7 +115,7 @@ def send_file_select_and_repeat(
                     break
                 if len(msg) < BUFFER_SIZE - len(key):
                     eof_counter += 1
-                print("timeouteo2")
+                logging.info("send timeout")
 
             for i in range(lib_protocol.WINDOW_SIZE - len(timers)):
                 _send_data(
@@ -175,7 +176,7 @@ def receive_file_select_and_repeat(socket_connected, path: str, address, process
                 )
                 break
         except socket.timeout:
-            print("timeouteo")
+            print("recieve timeout")
             return
 
     print("comienzo a recibir")
@@ -207,7 +208,7 @@ def receive_file_select_and_repeat(socket_connected, path: str, address, process
                         f.write(heapq.heappop(recv_buffer)[1])
                         wanted_seq_number = seq_number + 1
             except socket.timeout:
-                print("timeouteo2")
+                logging.info("recieve timeout")
             key = bytes(
                 f"{wanted_seq_number:{lib_protocol.PADDING}>{lib_protocol.SEQ_LEN}}",
                 lib_protocol.ENCODING,

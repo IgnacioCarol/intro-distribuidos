@@ -1,4 +1,5 @@
 import signal
+import logging
 
 
 class InterruptHandler(object):
@@ -37,7 +38,7 @@ class InterruptHandler(object):
 
     def _handleFinish(self):
         # TODO - Integrar con el cierre de los sockets.
-        print("Se ejecuta handle finsih del handler")
+        logging.info("Closing connection.")
         for f in self.functions:
             f()
 

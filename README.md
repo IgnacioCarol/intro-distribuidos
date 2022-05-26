@@ -39,7 +39,7 @@ optional arguments:
   -h, --help            show this help message and exit
   -v VERBOSE, --verbose VERBOSE
                         verbose increase output verbosity
-  -q QUIT, --quit QUIT  quiet decrease output verbosity
+  -q QUIET, --quiet QUIET  quiet decrease output verbosity
   -H HOST, --host HOST  server IP address
   -p PORT, --port PORT  server port
   -s STORAGE, --storage STORAGE
@@ -63,7 +63,7 @@ optional arguments:
   -h, --help            show this help message and exit
   -v VERBOSE, --verbose VERBOSE
                         verbose increase output verbosity
-  -q QUIT, --quit QUIT  quiet decrease output verbosity
+  -q QUIET, --quiet QUIET  quiet decrease output verbosity
   -H HOST, --host HOST  server IP address
   -p PORT, --port PORT  server port
   -s SRC, --src SRC     source file path
@@ -86,7 +86,7 @@ optional arguments:
   -h, --help            show this help message and exit
   -v VERBOSE, --verbose VERBOSE
                         verbose increase output verbosity
-  -q QUIT, --quit QUIT  quiet decrease output verbosity
+  -q QUIET, --quiet QUIET  quiet decrease output verbosity
   -H HOST, --host HOST  server IP address
   -p PORT, --port PORT  server port
   -d DST, --dst DST     source file path

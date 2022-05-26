@@ -2,6 +2,7 @@ import socket
 import lib.errors as lib_errors
 import lib.send as lib_send
 import lib.protocol as lib_protocol
+import logging
 
 
 class Upload:
@@ -12,17 +13,24 @@ class Upload:
         self.client.settimeout(lib_protocol.TIMEOUT_UPLOAD)
         self.filename = file_name
 
+    def _send(self, addr):
+        pass
+
     def send(self):
-        print("client sending")
+        logging.info("[Upload] Client starts send...")
         try:
+            logging.info("[Upload] Client will try to connect...")
             addr = self.connect(lib_protocol.MSG_INTENTION_UPLOAD)
-            lib_send.send_file_select_and_repeat(self.client, self.filename, addr)
+            logging.info("[Upload] Client will start to send with select and repeat...")
+            lib_send._send(addr)
         except lib_errors.ServerNotAvailable:
+            logging.info("[Upload] ERROR: Server not available...")
             return
         except (FileNotFoundError, IOError) as e:
+            logging.info("[Upload] ERROR: Client file not found.")
             raise e
         except Exception:
-            print("Error: Se recibió una excepción no manejada")
+            logging.info("[Upload] ERROR: Unexpected exception.")
             return
 
     def connect(self, intention: str) -> tuple:
@@ -30,23 +38,38 @@ class Upload:
         :param intention: to try to upload or download a file from the server
         :return tuple with value of host and port to connect
         """
+
         addr = ()
         while True:
+            logging.info("[Upload] Client sends its intention of uploading.")
             self.client.sendto(
                 bytes(f"{intention} {self.filename}", lib_protocol.ENCODING),
                 (self.host, self.port),
             )
             try:
+                logging.info("[Upload] Client tries to recieve ACK.")
                 data, addr = self.client.recvfrom(1024)
                 parsed_data = str(data, lib_protocol.ENCODING)
                 if parsed_data != lib_protocol.MSG_CONNECTION_ACK:
-                    print("Error: " + parsed_data)
+                    logging.info("[Upload] Client did not recieve ACK.")
                     raise lib_errors.ServerNotAvailable()
+                logging.info("[Upload] Client recieved ACK.")
                 break
             except socket.timeout:
+                logging.info("[Upload] Client timeout.")
                 continue
         return addr
 
     def close(self):
-        print("El cliente se esta cerrando")
+        logging.info("[Upload] Client is closing...")
         self.client.close()
+
+
+class UploadStopAndWait(Upload):
+    def _send(self, addr):
+        lib_send.send_file_stop_and_wait(self.client, self.filename, addr)
+
+
+class UploadSelectAndRepeat(Upload):
+    def _send(self, addr):
+        lib_send.send_file_select_and_repeat(self.client, self.filename, addr)
