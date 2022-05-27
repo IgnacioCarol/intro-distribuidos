@@ -229,7 +229,7 @@ def receive_file_select_and_repeat(socket_connected, path: str, address, process
 
     logging.info("Starting recieving...")
     wanted_seq_number = 0
-    amout_of_chunks = math.ceil(file_size / lib_protocol.CHUNK_SIZE)
+    amout_of_chunks = math.ceil(file_size / lib_protocol.CHUNK_SIZE) - 1
     with open(path, "wb") as f:
         while wanted_seq_number < amout_of_chunks:
             try:
