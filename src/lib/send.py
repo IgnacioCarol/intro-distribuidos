@@ -68,7 +68,10 @@ def _send_data(
         RepeatingTimer(
             lib_protocol.TIMEOUT_TIMER,
             _send_callback,
-            socket_connected, address, data_to_send, key,
+            socket_connected,
+            address,
+            data_to_send,
+            key,
         )
     )
     timers[-1].start()
@@ -116,9 +119,7 @@ def send_file_select_and_repeat(
         key = encode_select_and_repeat(last_chunk_sent)
         data_to_send = read_file(f, key)
         while data_to_send and last_chunk_sent < lib_protocol.WINDOW_SIZE:
-            logging.info(
-                "Sending: \n\tdata: {}\n\tkey:{}".format(data_to_send, key)
-            )
+            logging.info("Sending: \n\tdata: {}\n\tkey:{}".format(data_to_send, key))
             _send_data(timers, socket_connected, address, data_to_send, key)
             last_chunk_sent += 1
             key = encode_select_and_repeat(last_chunk_sent)
@@ -228,14 +229,16 @@ def receive_file_select_and_repeat(socket_connected, path: str, address, process
 
     logging.info("Starting recieving...")
     wanted_seq_number = 0
-    amout_of_chunks = math.ceil(file_size/lib_protocol.CHUNK_SIZE)
+    amout_of_chunks = math.ceil(file_size / lib_protocol.CHUNK_SIZE)
     with open(path, "wb") as f:
         while wanted_seq_number < amout_of_chunks:
             try:
                 seq_number, datachunk = _get_message_select_and_repeat(
                     socket_connected.recvfrom(BUFFER_SIZE)[0]
                 )
-                logging.info("Recieving:\n\key: {}\n\tdata: {}".format(seq_number, datachunk))
+                logging.info(
+                    "Recieving:\n\tkey: {}\n\tdata: {}".format(seq_number, datachunk)
+                )
                 if (
                     seq_number > wanted_seq_number
                     and len(recv_buffer) <= lib_protocol.WINDOW_SIZE
@@ -253,7 +256,9 @@ def receive_file_select_and_repeat(socket_connected, path: str, address, process
             except socket.timeout:
                 logging.info("Timeout")
 
-            logging.info("Sending ack with wanted sequence number: {}.".format(wanted_seq_number))
+            logging.info(
+                "Sending ack with wanted sequence number: {}.".format(wanted_seq_number)
+            )
             key = bytes(
                 encode_select_and_repeat(wanted_seq_number),
                 lib_protocol.ENCODING,
