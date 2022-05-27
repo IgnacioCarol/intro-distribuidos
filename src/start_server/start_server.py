@@ -15,7 +15,6 @@ import logging
 
 
 class _Uploader:
-
     def __init__(self, storage: str, addr, file_name: str, archive):
         self.storage = storage
         self.addr = addr
@@ -39,23 +38,31 @@ class _Uploader:
             logging.info("[start-server][uploader] ERROR: File {self.file} not owned.")
 
     def method(self):
+
+        # Set ownership of file
         try:
+            logging.info("[start-server][uploader] Set ownership {}->{}.".format(self.file, self.addr))
             if not self.archive.setOwnership(self.addr, self.file, True):
                 self.server.sendto(
                     bytes(lib_protocol.ERROR_BUSY_FILE, lib_protocol.ENCODING),
                     self.addr,
                 )
+                logging.info("[start-server][uploader] ERROR Ownership busy of file: {}.".format(self.file))
                 return
         except arc.FileAlreadyOwnedError:
             self.server.sendto(
                 bytes(lib_protocol.ERROR_ALREADY_SERVED, lib_protocol.ENCODING),
                 self.addr,
             )
+            logging.info("[start-server][uploader] ERROR: File {} has already been served.".format(self.file))
             return
 
+        # Sends SYNC-ACK
+        logging.info("[start-server][uploader] Sends SYC-ACK to client {}.".format(self.addr))
         self.server.sendto(
             bytes(lib_protocol.MSG_CONNECTION_ACK, lib_protocol.ENCODING), self.addr
         )
+
         try:
             self._receive()
         except socket.timeout:
@@ -202,26 +209,29 @@ class Server:
 class _UploaderStopAndWait(_Uploader):
     def _receive(self):
         return receive_file_stop_wait(
-            self.server, f"{self.storage}/{self.file}",  self.addr, set()
+            self.server, f"{self.storage}/{self.file}", self.addr, set()
         )
 
 
 class _UploaderSelectAndRepeat(_Uploader):
     def _receive(self):
         return receive_file_select_and_repeat(
-            self.server, f"{self.storage}/{self.file}",  self.addr, set()
+            self.server, f"{self.storage}/{self.file}", self.addr, set()
         )
-
 
 
 class _DownloaderStopAndWait(_Downloader):
     def _send(self):
-        return send_file_stop_and_wait(self.server, f"{self.storage}/{self.file}", self.addr)
+        return send_file_stop_and_wait(
+            self.server, f"{self.storage}/{self.file}", self.addr
+        )
 
 
 class _DownloaderSelectAndRepeat(_Downloader):
     def _send(self):
-        return send_file_select_and_repeat(self.server, f"{self.storage}/{self.file}", self.addr)
+        return send_file_select_and_repeat(
+            self.server, f"{self.storage}/{self.file}", self.addr
+        )
 
 
 class ServerStopAndWait(Server):

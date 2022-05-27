@@ -27,9 +27,7 @@ class UploadCLI:
             "-p", "--port", action="store", help="server port", type=int, required=True
         )
 
-        self.parser.add_argument(
-            "-s", "--src", action="store", help="source file path"
-        )
+        self.parser.add_argument("-s", "--src", action="store", help="source file path")
 
         self.parser.add_argument(
             "-n", "--name", action="store", help="file name", required=True
