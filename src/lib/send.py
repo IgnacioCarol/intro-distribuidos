@@ -2,7 +2,6 @@ import socket
 import uuid
 import heapq
 import os
-from math import ceil
 from io import TextIOWrapper
 from typing import List
 from lib.timer import RepeatingTimer
@@ -12,11 +11,14 @@ import logging
 BUFFER_SIZE = 1024
 ENDING_LIMIT = 10  # times to wait for the ack when finishing sending the file
 
+
 def encode_select_and_repeat(key: int):
     return f"{key:{lib_protocol.PADDING}>{lib_protocol.SEQ_LEN}}"
 
+
 def decode_select_and_repeat(key: int):
     return int(key)
+
 
 def write_message(key: bytes, message: bytes) -> bytes:
     return key + message
@@ -134,21 +136,32 @@ def send_file_select_and_repeat(
 
                 # If one socket timed out
                 if eof_counter > ENDING_LIMIT:
-                    logging.info("Timeout: socket tried {} times to recieve an ACK and will not try again".format(ENDING_LIMIT))
+                    logging.info(
+                        "Timeout: socket tried {} times to recieve an ACK and will not try again".format(
+                            ENDING_LIMIT
+                        )
+                    )
                     break
                 elif len(ack) < BUFFER_SIZE - len(key):
-                    logging.info("Timeout: socket tried {} times to recieve an ACK.".format(eof_counter))
+                    logging.info(
+                        "Timeout: socket tried {} times to recieve an ACK.".format(
+                            eof_counter
+                        )
+                    )
                     eof_counter += 1
                 else:
                     eof_counter += 1
                     logging.info("Timeout: socket did not recieve data.")
 
             for i in range(lib_protocol.WINDOW_SIZE - len(timers)):
-                logging.info("Sending: \n\tdata: {}\n\tkey:{}".format(data_to_send, key))
+                logging.info(
+                    "Sending: \n\tdata: {}\n\tkey:{}".format(data_to_send, key)
+                )
                 _send_data(timers, socket_connected, address, data_to_send, key)
                 last_chunk_sent += 1
                 key = encode_select_and_repeat(last_chunk_sent)
                 data_to_send = read_file(f, key)
+
 
 def read_file(f: TextIOWrapper, key):
     return f.read(BUFFER_SIZE - len(key))
@@ -196,7 +209,9 @@ def receive_file_select_and_repeat(socket_connected, path: str, address, process
                 lib_protocol.MSG_FILE_SIZE, lib_protocol.ENCODING
             ):
                 len_msg = len(lib_protocol.MSG_FILE_SIZE)
-                file_size = decode_select_and_repeat(datachunk[len_msg :len_msg + lib_protocol.SEQ_LEN])
+                file_size = decode_select_and_repeat(
+                    datachunk[len_msg : len_msg + lib_protocol.SEQ_LEN]
+                )
                 logging.info("File legnth recieved: {}".format(file_size))
                 socket_connected.sendto(
                     bytes(lib_protocol.MSG_FILE_SIZE_ACK, lib_protocol.ENCODING),
@@ -206,7 +221,6 @@ def receive_file_select_and_repeat(socket_connected, path: str, address, process
         except socket.timeout:
             logging.info("Timeout: File legnth not recieved.")
             return
-
 
     logging.info("Starting recieving...")
     wanted_seq_number = 0

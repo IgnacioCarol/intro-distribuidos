@@ -41,24 +41,38 @@ class _Uploader:
 
         # Set ownership of file
         try:
-            logging.info("[start-server][uploader] Set ownership {}->{}.".format(self.file, self.addr))
+            logging.info(
+                "[start-server][uploader] Set ownership {}->{}.".format(
+                    self.file, self.addr
+                )
+            )
             if not self.archive.setOwnership(self.addr, self.file, True):
                 self.server.sendto(
                     bytes(lib_protocol.ERROR_BUSY_FILE, lib_protocol.ENCODING),
                     self.addr,
                 )
-                logging.info("[start-server][uploader] ERROR Ownership busy of file: {}.".format(self.file))
+                logging.info(
+                    "[start-server][uploader] ERROR Ownership busy of file: {}.".format(
+                        self.file
+                    )
+                )
                 return
         except arc.FileAlreadyOwnedError:
             self.server.sendto(
                 bytes(lib_protocol.ERROR_ALREADY_SERVED, lib_protocol.ENCODING),
                 self.addr,
             )
-            logging.info("[start-server][uploader] ERROR: File {} has already been served.".format(self.file))
+            logging.info(
+                "[start-server][uploader] ERROR: File {} has already been served.".format(
+                    self.file
+                )
+            )
             return
 
         # Sends SYNC-ACK
-        logging.info("[start-server][uploader] Sends SYC-ACK to client {}.".format(self.addr))
+        logging.info(
+            "[start-server][uploader] Sends SYC-ACK to client {}.".format(self.addr)
+        )
         self.server.sendto(
             bytes(lib_protocol.MSG_CONNECTION_ACK, lib_protocol.ENCODING), self.addr
         )
