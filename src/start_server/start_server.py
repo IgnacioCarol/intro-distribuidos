@@ -104,18 +104,30 @@ class _Downloader:
     def _handle_release(self):
         try:
             self.archive.releaseOwnership(self.addr, self.file)
-            logging.info("[server-downloader] Release ownership  {self.file}.")
+            logging.info("[server-downloader] Release ownership {}.".format(self.file))
         except arc.FileNotInArchiveError:
             logging.info("[server-downloader] ERROR: File {self.file} not in archive.")
         except arc.FileNotOwnedError:
             logging.info("[server-downloader] ERROR: File {self.file} not owned.")
 
     def method(self):
+
+        # Set ownership of file
         try:
-            if not self.archive.setOwnership(self.addr, self.file, False):
+            logging.info(
+                "[start-server][downloader] Set ownership {}->{}.".format(
+                    self.file, self.addr
+                )
+            )
+            if not self.archive.setOwnership(self.addr, self.file, True):
                 self.server.sendto(
                     bytes(lib_protocol.ERROR_BUSY_FILE, lib_protocol.ENCODING),
                     self.addr,
+                )
+                logging.info(
+                    "[start-server][downloader] ERROR Ownership busy of file: {}.".format(
+                        self.file
+                    )
                 )
                 return
         except arc.FileAlreadyOwnedError:
@@ -123,9 +135,14 @@ class _Downloader:
                 bytes(lib_protocol.ERROR_ALREADY_SERVED, lib_protocol.ENCODING),
                 self.addr,
             )
+            logging.info(
+                "[start-server][downloader] ERROR: File {} has already been served.".format(
+                    self.file
+                )
+            )
             return
 
-        if not path.exists(self.file):
+        if not path.exists(f"{self.storage}/{self.file}"):
             self._handle_release()
             self.server.sendto(
                 bytes(lib_protocol.ERROR_NONEXISTENT_FILE, lib_protocol.ENCODING),

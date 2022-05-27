@@ -2,6 +2,7 @@ import socket
 import lib.errors as lib_errors
 from lib.send import receive_file_stop_wait, receive_file_select_and_repeat
 import lib.protocol as lib_protocol
+import logging
 
 
 class Download:
@@ -12,15 +13,24 @@ class Download:
         self.filename = file_name
         self.path = path
 
-    def _receive(self, file, addr, processed):
+    def _receive(self, addr):
         pass
 
     def receive(self):
-        print("client receiving")
         try:
+            logging.info("[Download] Client will try to connect...")
             addr = self.connect(lib_protocol.MSG_INTENTION_DOWNLOAD)
+            logging.info("[Download] Client will start to recieve...")
+            self._receive(addr)
         except lib_errors.ServerNotAvailable:
-            return self._receive(addr)
+            logging.info("[Download] ERROR: Server not available...")
+            return
+        except (FileNotFoundError, IOError) as e:
+            logging.info("[Download] ERROR: Client file not found.")
+            raise e
+        except Exception as e:
+            logging.info("[Download] ERROR: Unexpected exception: {}.".format(e))
+            return
 
     def connect(self, intention: str) -> tuple:
         """
@@ -47,13 +57,11 @@ class Download:
 
 class DownloadStopAndWait(Download):
     def _receive(self, addr):
-        return receive_file_stop_wait(
-            self.client, f"{self.path}/{self.filename}", addr, set()
-        )
+        file_path = "{}/{}".format(self.path, self.filename)
+        return receive_file_stop_wait(self.client, file_path, addr, set())
 
 
 class DownloadSelectAndRepeat(Download):
     def _receive(self, addr):
-        return receive_file_select_and_repeat(
-            self.client, f"{self.path}/{self.filename}", addr, set()
-        )
+        file_path = "{}/{}".format(self.path, self.filename)
+        return receive_file_select_and_repeat(self.client, file_path, addr, set())

@@ -265,4 +265,4 @@ def receive_file_select_and_repeat(socket_connected, path: str, address, process
             )
             socket_connected.sendto(key, address)
 
-    print(f"finished receiving and storing file at {path}")
+    logging.info("finished receiving and storing file at {}".format(path))
