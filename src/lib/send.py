@@ -137,6 +137,8 @@ def send_file_select_and_repeat(
                         timers[i].cancel()
                         timers.pop(i)
                     latest_ack = ack
+                    if(latest_ack*lib_protocol.CHUNK_SIZE > file_size):
+                        break
                     for i in range(lib_protocol.WINDOW_SIZE - len(timers)):
                         logging.info(
                             "Sending: \n\tdata: {}\n\tkey:{}".format(data_to_send, key)
@@ -145,6 +147,7 @@ def send_file_select_and_repeat(
                         last_chunk_sent += 1
                         key = encode_select_and_repeat(last_chunk_sent)
                         data_to_send = read_file(f, key)
+
             except socket.timeout:
 
                 # If one socket timed out
@@ -230,7 +233,7 @@ def receive_file_select_and_repeat(socket_connected, path: str, address, process
     wanted_seq_number = 0
     amout_of_chunks = math.ceil(file_size / lib_protocol.CHUNK_SIZE) - 1
     with open(path, "wb") as f:
-        while wanted_seq_number < amout_of_chunks:
+        while wanted_seq_number*lib_protocol.CHUNK_SIZE < file_size:
             try:
                 seq_number, datachunk = _get_message_select_and_repeat(
                     socket_connected.recvfrom(BUFFER_SIZE)[0]
