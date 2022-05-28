@@ -132,11 +132,19 @@ def send_file_select_and_repeat(
                 # Recieve ack from server and cancel all the timers of the recieved data
                 ack, adress = socket_connected.recvfrom(BUFFER_SIZE)
                 ack = decode_select_and_repeat(ack)
-                for i in range(latest_ack, ack + 1):
-                    timers[i].cancel()
-                    timers.pop(i)
-                latest_ack = ack + 1
-
+                if(ack > latest_ack):
+                    for i in range(ack - latest_ack):
+                        timers[i].cancel()
+                        timers.pop(i)
+                    latest_ack = ack
+                    for i in range(lib_protocol.WINDOW_SIZE - len(timers)):
+                        logging.info(
+                            "Sending: \n\tdata: {}\n\tkey:{}".format(data_to_send, key)
+                        )
+                        _send_data(timers, socket_connected, address, data_to_send, key)
+                        last_chunk_sent += 1
+                        key = encode_select_and_repeat(last_chunk_sent)
+                        data_to_send = read_file(f, key)
             except socket.timeout:
 
                 # If one socket timed out
@@ -157,15 +165,6 @@ def send_file_select_and_repeat(
                 else:
                     eof_counter += 1
                     logging.info("Timeout: socket did not recieve data.")
-
-            for i in range(lib_protocol.WINDOW_SIZE - len(timers)):
-                logging.info(
-                    "Sending: \n\tdata: {}\n\tkey:{}".format(data_to_send, key)
-                )
-                _send_data(timers, socket_connected, address, data_to_send, key)
-                last_chunk_sent += 1
-                key = encode_select_and_repeat(last_chunk_sent)
-                data_to_send = read_file(f, key)
 
 
 def read_file(f: TextIOWrapper, key):
