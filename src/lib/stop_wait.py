@@ -1,7 +1,7 @@
 import socket
 import uuid
 from typing import List
-import src.lib.utils as lib_utils
+import lib.utils as lib_utils
 import logging
 
 

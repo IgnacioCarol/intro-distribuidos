@@ -1,8 +1,8 @@
 import socket
 from io import TextIOWrapper
-from typing import List
-from src.lib.timer import RepeatingTimer
-import src.lib.protocol as lib_protocol
+from typing import Dict
+from lib.timer import RepeatingTimer
+import lib.protocol as lib_protocol
 
 BUFFER_SIZE = 1024
 ENDING_LIMIT = 10  # times to wait for the ack when finishing sending the file

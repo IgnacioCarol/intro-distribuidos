@@ -1,14 +1,13 @@
 import socket
 import threading
-import src.lib.archive as arc
-import src.lib.errors as lib_errors
-import src.lib.stop_wait as stop_and_wait
-import src.lib.selective_repeat as selective_repeat
-import src.lib.protocol as lib_protocol
+import lib.archive as arc
+import lib.errors as lib_errors
+import lib.stop_wait as stop_and_wait
+import lib.selective_repeat as selective_repeat
+import lib.protocol as lib_protocol
 from typing import List
 from os import path
 import logging
-from src.lib.logger import Logger
 
 
 class _Uploader:
@@ -77,7 +76,6 @@ class _Uploader:
         try:
             self._receive()
         except socket.timeout:
-            print("se manejo timeout en upload del server")
             self._handle_release()
             return
 
@@ -244,7 +242,7 @@ class _UploaderStopAndWait(_Uploader):
 class _UploaderSelectiveRepeat(_Uploader):
     def _receive(self):
         return selective_repeat.receive_file(
-            self.server, f"{self.storage}/{self.file}", self.addr, set()
+            self.server, f"{self.storage}/{self.file}", self.addr
         )
 
 
@@ -280,9 +278,3 @@ class ServerSelectiveRepeat(Server):
             lib_protocol.MSG_INTENTION_DOWNLOAD: _DownloaderSelectiveRepeat,
         }
         super().__init__(host, port, storage, architecture)
-
-
-if __name__ == '__main__':
-    Logger(True, False)
-    server = ServerSelectiveRepeat('localhost', 8080)
-    server.listen()

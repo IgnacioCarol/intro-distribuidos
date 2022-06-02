@@ -1,10 +1,10 @@
 import socket
 import heapq
-import os
-import src.lib.utils as lib_utils
-import src.lib.protocol as lib_protocol
+import lib.utils as lib_utils
+import lib.protocol as lib_protocol
 import logging
 
+FINISH_RECEIVING = 99999999
 
 def encode(key: int):
     # ToDo: cambiar para el ultimo paquete que se envia
@@ -15,36 +15,11 @@ def send_file(
         socket_connected: socket.socket, filename: str, address: str
 ):
     eof_counter = 0
-
+    error_flag = False
     with open(filename, "rb") as f:
 
         # Revive ACK from server
         logging.info("Starting send with selective repeat...")
-
-        file_size = os.stat(filename).st_size
-        while True:
-            try:
-
-                logging.info("Sending ACK...")
-                ack = bytes(
-                    lib_protocol.MSG_FILE_SIZE + encode(file_size),
-                    lib_protocol.ENCODING,
-                )
-                socket_connected.sendto(ack, address)
-
-                logging.info("Receiving SYNC-ACK...")
-                sync_ack = str(
-                    socket_connected.recvfrom(lib_utils.BUFFER_SIZE)[0],
-                    lib_protocol.ENCODING
-                )
-
-                if sync_ack == lib_protocol.MSG_FILE_SIZE_ACK:
-                    logging.info("Received ACK.")
-                    break
-
-            except socket.timeout:
-                logging.info("Timeout: no ACK SYNC received.")
-                return
 
         # Initialize timers dict
         timers = {}
@@ -61,18 +36,14 @@ def send_file(
             data_to_send = lib_utils.read_file(f, key)
 
         # Then ...
-        while data_to_send:
+        while len(timers):
             try:
                 # Receive ack from server and cancel all the timers of the received data
                 ack, address = socket_connected.recvfrom(lib_utils.BUFFER_SIZE)
-                ack = int(ack)
-                timers.pop(ack)
-                min_ack = min(timers.keys())
+                timers.pop(str(ack, lib_protocol.ENCODING)).cancel()
+                min_ack = int(min(timers.keys())) if len(timers) else last_chunk_sent
                 window_shifts = last_chunk_sent - min_ack + 1
-                # Si se mando todo, como hago para cortar? me tengo que quedar en este while, no puedo seguir iterando
-                # tengo que recibir cierta cantidad de veces que se termino de mandar, tengo que tener cuidado
-                # si recibo algo que no es int y lo quiero pasar a int, ahi revienta
-                if window_shifts < lib_protocol.WINDOW_SIZE:
+                if window_shifts < lib_protocol.WINDOW_SIZE and data_to_send:
                     displacements = \
                         lib_protocol.WINDOW_SIZE \
                         + last_chunk_sent \
@@ -83,13 +54,43 @@ def send_file(
                         )
                         lib_utils.send_data(timers, socket_connected, address, data_to_send, key)
                         last_chunk_sent += 1
-                        # ToDo: mandar el ack nomas, o no se que me mandan ellos la verdad
                         key = encode(last_chunk_sent)
                         data_to_send = lib_utils.read_file(f, key)
+                        if not data_to_send:
+                            break
 
             except socket.timeout:
 
                 # If one socket timed out
+                if eof_counter > lib_utils.ENDING_LIMIT:
+                    logging.info(
+                        f"Timeout: socket tried {lib_utils.ENDING_LIMIT} "
+                        f"times to receive an ACK and will not try again"
+                    )
+                    error_flag = True
+                    break
+                elif len(ack) < lib_utils.BUFFER_SIZE - len(key):
+                    logging.info(
+                        f"Timeout: socket tried {eof_counter} times "
+                        f"to receive an ACK."
+                    )
+                    eof_counter += 1
+                else:
+                    eof_counter += 1
+                    logging.info("Timeout: socket did not receive data.")
+
+        eof_counter = 0
+        if not error_flag:
+            logging.info(f"Finished sending file {filename}")
+        while not error_flag:
+            try:
+                socket_connected.sendto(
+                    bytes(f"{FINISH_RECEIVING}", lib_protocol.ENCODING),
+                    address
+                )
+                socket_connected.recvfrom(lib_utils.BUFFER_SIZE)
+                break
+            except socket.timeout:
                 if eof_counter > lib_utils.ENDING_LIMIT:
                     logging.info(
                         f"Timeout: socket tried {lib_utils.ENDING_LIMIT} "
@@ -117,33 +118,11 @@ def receive_file(socket_connected, path: str, address):
     recv_buffer = []
     heapq.heapify(recv_buffer)
 
-    # Receive file size and send ACK
-    logging.info("Receiving file length...")
-    while True:
-        try:
-            datachunk = socket_connected.recvfrom(lib_utils.BUFFER_SIZE)[0]
-            logging.info("Received a datachunk: {}".format(datachunk))
-            if datachunk[: len(lib_protocol.MSG_FILE_SIZE)] == bytes(
-                    lib_protocol.MSG_FILE_SIZE, lib_protocol.ENCODING
-            ):
-                len_msg = len(lib_protocol.MSG_FILE_SIZE)
-                file_size = int(
-                    datachunk[len_msg: len_msg + lib_protocol.SEQ_LEN]
-                )
-                logging.info("File length received: {}".format(file_size))
-                socket_connected.sendto(
-                    bytes(lib_protocol.MSG_FILE_SIZE_ACK, lib_protocol.ENCODING),
-                    address,
-                )
-                break
-        except socket.timeout:
-            logging.info("Timeout: File length not received.")
-            return
-
     logging.info("Starting receiving...")
     wanted_seq_number = 0
+    seq_number = 0
     with open(path, "wb") as f:
-        while wanted_seq_number * lib_protocol.CHUNK_SIZE < file_size:
+        while seq_number != FINISH_RECEIVING:
             try:
                 seq_number, datachunk = _get_message(
                     socket_connected.recvfrom(lib_utils.BUFFER_SIZE)[0]
@@ -169,10 +148,10 @@ def receive_file(socket_connected, path: str, address):
                 logging.info("Timeout")
 
             logging.info(
-                "Sending ack with wanted sequence number: {}.".format(wanted_seq_number)
+                "Sending ack with wanted sequence number: {}.".format(seq_number)
             )
             key = bytes(
-                encode(wanted_seq_number),
+                encode(seq_number),
                 lib_protocol.ENCODING,
             )
             socket_connected.sendto(key, address)
