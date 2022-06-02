@@ -1,7 +1,7 @@
-from src.download.download_cli import DownloadCLI
-import src.download.download as download
-from src.lib.handler import InterruptHandler
-from src.lib.logger import Logger
+from lib.download.download_cli import DownloadCLI
+from lib.download.download import DownloadSelectiveRepeat, DownloadStopAndWait
+from lib.handler import InterruptHandler
+from lib.logger import Logger
 import logging
 
 
@@ -10,14 +10,14 @@ if __name__ == "__main__":
     logger = Logger(args.verbose, args.quiet)
     with InterruptHandler() as handler:
         if args.arquitecture == "select_and_repeat":
-            s = download.DownloadSelectAndRepeat(
+            s = DownloadSelectiveRepeat(
                 args.host, args.port, args.name, args.dst
             )
             s.receive()
         elif args.arquitecture == "stop_and_wait":
-            s = download.DownloadStopAndWait(
+            s = DownloadStopAndWait(
                 args.host, args.port, args.name, args.dst
-            )  # TO-DO
+            )
             s.receive()
         else:
             logging.info(

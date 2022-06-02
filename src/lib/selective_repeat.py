@@ -1,7 +1,7 @@
 import socket
 import heapq
-import src.lib.utils as lib_utils
-import src.lib.protocol as lib_protocol
+import lib.utils as lib_utils
+import lib.protocol as lib_protocol
 import logging
 
 FINISH_RECEIVING = 99999999
