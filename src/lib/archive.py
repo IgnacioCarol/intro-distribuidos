@@ -1,5 +1,7 @@
 import threading as th
 
+from typing import Dict, Set, Tuple
+
 
 class FileAlreadyOwnedError(Exception):
     pass
@@ -14,43 +16,37 @@ class FileNotOwnedError(Exception):
 
 
 class Archive:
-    """This class implements a sistem that keeps track of files in use by a clients"""
+    """This class implements a system that keeps track of files in use by a clients"""
 
     lock = th.Lock()
-    ip_by_file = {}  # key: filename, value : ([ownerips], rcount)
+    ip_by_file: Dict[str, Tuple[Set[str], int, bool]] = {}  # key: filename, value : ({ownerips}, rcount, bool)
 
-    def setOwnership(self, ip, file_name, w):
+    def set_ownership(self, ip, file_name, w):
         self.lock.acquire()
-        if file_name in self.ip_by_file:
-            tup = self.ip_by_file[file_name]
-            if ip in tup[0]:
-                self.lock.release()
+        try:
+            ips, amount, is_writing = self.ip_by_file.get(file_name, (set(), 0, False))
+            if ip in ips:
                 raise FileAlreadyOwnedError()
-            if w or tup[1] == -1:
-                self.lock.release()
+            if is_writing or (w and amount != 0):
                 return False
-            tup[0].add(ip)
-            self.ip_by_file[file_name] = (tup[0], tup[1] + 1)
-        else:
-            self.ip_by_file[file_name] = (set({ip}), -1 if w else 1)
-        self.lock.release()
+            ips.add(ip)
+            self.ip_by_file[file_name] = (ips, amount + 1, w)
+        finally:
+            self.lock.release()
         return True
 
-    def releaseOwnership(self, ip, file_name):
+    def release_ownership(self, ip, file_name):
         self.lock.acquire()
-        if file_name not in self.ip_by_file:
+        try:
+            if file_name not in self.ip_by_file:
+                raise FileNotInArchiveError()
+            ips, amount, is_writing = self.ip_by_file.get(file_name, (set(), 0, False))
+            if ip not in ips:
+                raise FileNotOwnedError()
+            ips.remove(ip)
+            self.ip_by_file[file_name] = (ips, amount - 1, False)
+        finally:
             self.lock.release()
-            raise FileNotInArchiveError()
-        tup = self.ip_by_file[file_name]
-        if ip not in tup[0]:
-            self.lock.release()
-            raise FileNotOwnedError()
-        if tup[1] <= 1:
-            del self.ip_by_file[file_name]
-        else:
-            tup[0].remove(ip)
-            self.ip_by_file[file_name] = (tup[0], tup[1] - 1)
-        self.lock.release()
 
     def clear(self):
         self.lock.acquire()
