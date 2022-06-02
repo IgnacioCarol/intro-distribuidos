@@ -45,5 +45,3 @@ def receive_file(socket_connected, path: str, address, processed):
             if len(datachunk) < lib_utils.BUFFER_SIZE - len(key):
                 break
     logging.info(f"finished receiving and storing file at {path}")
-
-

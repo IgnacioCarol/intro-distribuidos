@@ -6,6 +6,7 @@ import logging
 
 FINISH_RECEIVING = 99999999
 
+
 def encode(key: int):
     # ToDo: cambiar para el ultimo paquete que se envia
     return f"{key:{lib_protocol.PADDING}>{lib_protocol.SEQ_LEN}}"

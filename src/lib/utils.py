@@ -41,4 +41,3 @@ def send_data(
 
 def read_file(f: TextIOWrapper, key):
     return f.read(BUFFER_SIZE - len(key))
-
