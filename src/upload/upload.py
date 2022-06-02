@@ -1,7 +1,8 @@
 import socket
-import lib.errors as lib_errors
-import lib.send as lib_send
-import lib.protocol as lib_protocol
+import src.lib.errors as lib_errors
+import src.lib.protocol as lib_protocol
+import src.lib.stop_wait as stop_and_wait
+import src.lib.selective_repeat as selective_repeat
 import logging
 
 
@@ -67,9 +68,14 @@ class Upload:
 
 class UploadStopAndWait(Upload):
     def _send(self, addr):
-        lib_send.send_file_stop_and_wait(self.client, self.filename, addr)
+        stop_and_wait.send_file(self.client, self.filename, addr)
 
 
 class UploadSelectAndRepeat(Upload):
     def _send(self, addr):
-        lib_send.send_file_select_and_repeat(self.client, self.filename, addr)
+        selective_repeat.send_file(self.client, self.filename, addr)
+
+
+if __name__ == '__main__':
+    server = UploadSelectAndRepeat('localhost', 8080, 'nachito')
+    server.send()

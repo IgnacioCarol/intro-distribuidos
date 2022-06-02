@@ -1,17 +1,14 @@
 import socket
 import threading
-import lib.archive as arc
-import lib.errors as lib_errors
-from lib.send import (
-    send_file_select_and_repeat,
-    send_file_stop_and_wait,
-    receive_file_select_and_repeat,
-    receive_file_stop_wait,
-)
-import lib.protocol as lib_protocol
+import src.lib.archive as arc
+import src.lib.errors as lib_errors
+import src.lib.stop_wait as stop_and_wait
+import src.lib.selective_repeat as selective_repeat
+import src.lib.protocol as lib_protocol
 from typing import List
 from os import path
 import logging
+from src.lib.logger import Logger
 
 
 class _Uploader:
@@ -84,7 +81,7 @@ class _Uploader:
             self._handle_release()
             return
 
-        print(f"file {self.file} written")
+        logging.info(f"file {self.file} written")
         self._handle_release()
 
 
@@ -153,7 +150,7 @@ class _Downloader:
             bytes(lib_protocol.MSG_CONNECTION_ACK, lib_protocol.ENCODING), self.addr
         )
         self._send()
-        print("file finished to send")
+        logging.info(f"File {self.file} sent")
         self._handle_release()
 
 
@@ -167,18 +164,18 @@ def get_data(data: bytes) -> List[str]:
 
 
 class Server:
-    def __init__(self, host: str, port: int, storage: str = "./etc", arquitecture=dict):
+    def __init__(self, host: str, port: int, storage: str = "./etc", architecture=dict):
         self.server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.server.bind((host, port))
         self.path = storage
         self.connections = set()
-        self.classes = arquitecture
-        self.stoped = False
+        self.classes = architecture
+        self.stopped = False
         self.archive = arc.Archive()
 
     def listen(self):
         logging.info("[server] Server is listening...")
-        while not self.stoped:
+        while not self.stopped:
             try:
                 data, addr = self.server.recvfrom(lib_protocol.CHUNK_SIZE)
                 logging.info("[server] Server recieves data from {}...".format(addr))
@@ -227,7 +224,7 @@ class Server:
             logging.info("[server] Server runs uploader.")
 
     def close(self):
-        self.stoped = True
+        self.stopped = True
         self.server.close()
         logging.info("[server] Server closed.")
         self.__joinConnections()
@@ -239,28 +236,28 @@ class Server:
 
 class _UploaderStopAndWait(_Uploader):
     def _receive(self):
-        return receive_file_stop_wait(
+        return stop_and_wait.receive_file(
             self.server, f"{self.storage}/{self.file}", self.addr, set()
         )
 
 
-class _UploaderSelectAndRepeat(_Uploader):
+class _UploaderSelectiveRepeat(_Uploader):
     def _receive(self):
-        return receive_file_select_and_repeat(
+        return selective_repeat.receive_file(
             self.server, f"{self.storage}/{self.file}", self.addr, set()
         )
 
 
 class _DownloaderStopAndWait(_Downloader):
     def _send(self):
-        return send_file_stop_and_wait(
+        return stop_and_wait.send_file(
             self.server, f"{self.storage}/{self.file}", self.addr
         )
 
 
-class _DownloaderSelectAndRepeat(_Downloader):
+class _DownloaderSelectiveRepeat(_Downloader):
     def _send(self):
-        return send_file_select_and_repeat(
+        return selective_repeat.send_file(
             self.server, f"{self.storage}/{self.file}", self.addr
         )
 
@@ -268,18 +265,24 @@ class _DownloaderSelectAndRepeat(_Downloader):
 class ServerStopAndWait(Server):
     def __init__(self, host: str, port: int, storage: str = "./etc"):
 
-        arquitecture = {
+        architecture = {
             lib_protocol.MSG_INTENTION_UPLOAD: _UploaderStopAndWait,
             lib_protocol.MSG_INTENTION_DOWNLOAD: _DownloaderStopAndWait,
         }
-        super().__init__(host, port, storage, arquitecture)
+        super().__init__(host, port, storage, architecture)
 
 
-class ServerSelectAndRepeat(Server):
+class ServerSelectiveRepeat(Server):
     def __init__(self, host: str, port: int, storage: str = "./etc"):
 
-        arquitecture = {
-            lib_protocol.MSG_INTENTION_UPLOAD: _UploaderSelectAndRepeat,
-            lib_protocol.MSG_INTENTION_DOWNLOAD: _DownloaderSelectAndRepeat,
+        architecture = {
+            lib_protocol.MSG_INTENTION_UPLOAD: _UploaderSelectiveRepeat,
+            lib_protocol.MSG_INTENTION_DOWNLOAD: _DownloaderSelectiveRepeat,
         }
-        super().__init__(host, port, storage, arquitecture)
+        super().__init__(host, port, storage, architecture)
+
+
+if __name__ == '__main__':
+    Logger(True, False)
+    server = ServerSelectiveRepeat('localhost', 8080)
+    server.listen()
