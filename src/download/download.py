@@ -1,6 +1,7 @@
 import socket
 import lib.errors as lib_errors
-from lib.send import receive_file_stop_wait, receive_file_select_and_repeat
+import lib.selective_repeat as selective_repeat
+import lib.stop_wait as stop_and_wait
 import lib.protocol as lib_protocol
 import logging
 
@@ -47,7 +48,7 @@ class Download:
                 data, addr = self.client.recvfrom(lib_protocol.BUFFER_SIZE)
                 parsed_data = str(data, lib_protocol.ENCODING)
                 if parsed_data != lib_protocol.MSG_CONNECTION_ACK:
-                    print("Error: " + parsed_data)
+                    logging.info("Error: " + parsed_data)
                     raise lib_errors.ServerNotAvailable()
                 break
             except socket.timeout:
@@ -58,10 +59,10 @@ class Download:
 class DownloadStopAndWait(Download):
     def _receive(self, addr):
         file_path = "{}/{}".format(self.path, self.filename)
-        return receive_file_stop_wait(self.client, file_path, addr, set())
+        return stop_and_wait.receive_file(self.client, file_path, addr, set())
 
 
-class DownloadSelectAndRepeat(Download):
+class DownloadSelectiveRepeat(Download):
     def _receive(self, addr):
         file_path = "{}/{}".format(self.path, self.filename)
-        return receive_file_select_and_repeat(self.client, file_path, addr, set())
+        return selective_repeat.receive_file(self.client, file_path, addr)
