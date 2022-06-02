@@ -17,7 +17,7 @@ def encode_select_and_repeat(key: int):
     return f"{key:{lib_protocol.PADDING}>{lib_protocol.SEQ_LEN}}"
 
 
-def decode_select_and_repeat(key: int):
+def decode_select_and_repeat(key: bytes):
     return int(key)
 
 

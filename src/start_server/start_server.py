@@ -24,18 +24,18 @@ class _Uploader:
         self.archive = archive
 
     def _receive(self):
-        pass
+        raise Exception('not defined')
 
     def _handle_release(self):
         try:
-            self.archive.releaseOwnership(self.addr, self.file)
-            logging.info("[start-server][uploader] Release ownership  {self.file}.")
+            self.archive.release_ownership(self.addr, self.file)
+            logging.info(f"[start-server][uploader] Release ownership  {self.file}.")
         except arc.FileNotInArchiveError:
             logging.info(
-                "[start-server][uploader] ERROR: File {self.file} not in archive."
+                f"[start-server][uploader] ERROR: File {self.file} not in archive."
             )
         except arc.FileNotOwnedError:
-            logging.info("[start-server][uploader] ERROR: File {self.file} not owned.")
+            logging.info(f"[start-server][uploader] ERROR: File {self.file} not owned.")
 
     def method(self):
 
@@ -46,7 +46,7 @@ class _Uploader:
                     self.file, self.addr
                 )
             )
-            if not self.archive.setOwnership(self.addr, self.file, True):
+            if not self.archive.set_ownership(self.addr, self.file, True):
                 self.server.sendto(
                     bytes(lib_protocol.ERROR_BUSY_FILE, lib_protocol.ENCODING),
                     self.addr,
@@ -88,7 +88,6 @@ class _Uploader:
         self._handle_release()
 
 
-# Fixme there is a border case where it could be repeated for the same address multiple senders
 class _Downloader:
     def __init__(self, storage: str, addr, file_name: str, archive):
         self.storage = storage
@@ -103,7 +102,7 @@ class _Downloader:
 
     def _handle_release(self):
         try:
-            self.archive.releaseOwnership(self.addr, self.file)
+            self.archive.release_ownership(self.addr, self.file)
             logging.info("[server-downloader] Release ownership {}.".format(self.file))
         except arc.FileNotInArchiveError:
             logging.info("[server-downloader] ERROR: File {self.file} not in archive.")
@@ -113,13 +112,20 @@ class _Downloader:
     def method(self):
 
         # Set ownership of file
+        if not path.exists(f"{self.storage}/{self.file}"):
+            self._handle_release()
+            self.server.sendto(
+                bytes(lib_protocol.ERROR_NONEXISTENT_FILE, lib_protocol.ENCODING),
+                self.addr,
+            )
+            return
         try:
             logging.info(
                 "[start-server][downloader] Set ownership {}->{}.".format(
                     self.file, self.addr
                 )
             )
-            if not self.archive.setOwnership(self.addr, self.file, True):
+            if not self.archive.set_ownership(self.addr, self.file, False):
                 self.server.sendto(
                     bytes(lib_protocol.ERROR_BUSY_FILE, lib_protocol.ENCODING),
                     self.addr,
@@ -139,14 +145,6 @@ class _Downloader:
                 "[start-server][downloader] ERROR: File {} has already been served.".format(
                     self.file
                 )
-            )
-            return
-
-        if not path.exists(f"{self.storage}/{self.file}"):
-            self._handle_release()
-            self.server.sendto(
-                bytes(lib_protocol.ERROR_NONEXISTENT_FILE, lib_protocol.ENCODING),
-                self.addr,
             )
             return
         self.server.sendto(
@@ -173,12 +171,12 @@ class Server:
         self.path = storage
         self.connections = set()
         self.classes = arquitecture
-        self.stoped = False
+        self.stopped = False
         self.archive = arc.Archive()
 
     def listen(self):
         logging.info("[server] Server is listening...")
-        while not self.stoped:
+        while not self.stopped:
             try:
                 data, addr = self.server.recvfrom(lib_protocol.CHUNK_SIZE)
                 logging.info("[server] Server recieves data from {}...".format(addr))
@@ -187,7 +185,7 @@ class Server:
                 continue
             try:
                 intention, file_name = get_data(data)
-                class_to_use = self.classes.get(intention)
+                class_to_use = self.classes.get(intention, None)
                 logging.info(
                     "[server] Server's client has an intention of {}ing file {}...".format(
                         intention, file_name
@@ -227,12 +225,12 @@ class Server:
             logging.info("[server] Server runs uploader.")
 
     def close(self):
-        self.stoped = True
+        self.stopped = True
         self.server.close()
         logging.info("[server] Server closed.")
-        self.__joinConnections()
+        self.__join_connections()
 
-    def __joinConnections(self):
+    def __join_connections(self):
         for connection in self.connections:
             connection.join()
 
