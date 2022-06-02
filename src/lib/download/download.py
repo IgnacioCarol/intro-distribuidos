@@ -1,3 +1,4 @@
+import os
 import socket
 import lib.errors as lib_errors
 import lib.selective_repeat as selective_repeat
@@ -64,5 +65,5 @@ class DownloadStopAndWait(Download):
 
 class DownloadSelectiveRepeat(Download):
     def _receive(self, addr):
-        file_path = "{}/{}".format(self.path, self.filename)
+        file_path = "{}/{}".format(os.getcwd(), self.filename)
         return selective_repeat.receive_file(self.client, file_path, addr)
