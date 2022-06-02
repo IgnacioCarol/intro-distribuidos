@@ -1,7 +1,8 @@
 import socket
 import lib.errors as lib_errors
-import lib.send as lib_send
 import lib.protocol as lib_protocol
+import lib.stop_wait as stop_and_wait
+import lib.selective_repeat as selective_repeat
 import logging
 
 
@@ -32,6 +33,8 @@ class Upload:
         except Exception as e:
             logging.info("[Upload] ERROR: Unexpected exception: {}.".format(e))
             return
+        finally:
+            self.client.close()
 
     def connect(self, intention: str) -> tuple:
         """
@@ -67,9 +70,9 @@ class Upload:
 
 class UploadStopAndWait(Upload):
     def _send(self, addr):
-        lib_send.send_file_stop_and_wait(self.client, self.filename, addr)
+        stop_and_wait.send_file(self.client, self.filename, addr)
 
 
-class UploadSelectAndRepeat(Upload):
+class UploadSelectiveRepeat(Upload):
     def _send(self, addr):
-        lib_send.send_file_select_and_repeat(self.client, self.filename, addr)
+        selective_repeat.send_file(self.client, self.filename, addr)
