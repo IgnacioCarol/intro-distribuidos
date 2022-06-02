@@ -1,52 +1,17 @@
 import socket
 import heapq
 import os
-from io import TextIOWrapper
-from typing import List, Dict
-from lib.timer import RepeatingTimer
-import lib.protocol as lib_protocol
+import src.lib.utils as lib_utils
+import src.lib.protocol as lib_protocol
 import logging
 
-BUFFER_SIZE = 1024
-ENDING_LIMIT = 10  # times to wait for the ack when finishing sending the file
 
-
-def encode_selective_repeat(key: int):
+def encode(key: int):
+    # ToDo: cambiar para el ultimo paquete que se envia
     return f"{key:{lib_protocol.PADDING}>{lib_protocol.SEQ_LEN}}"
 
 
-def write_message(key: bytes, message: bytes) -> bytes:
-    return key + message
-
-
-def _send_callback(socket_connected, address, data_to_send, key):
-    data = bytes(
-        f"{key:{lib_protocol.PADDING}>{lib_protocol.SEQ_LEN}}", lib_protocol.ENCODING
-    )
-    msg = write_message(data, data_to_send)
-    socket_connected.sendto(msg, address)
-
-
-def _send_data(
-        timers: Dict[int, RepeatingTimer],
-        socket_connected: socket.socket,
-        address: str,
-        data_to_send: str,
-        key: str,
-):
-    _send_callback(socket_connected, address, data_to_send, key)
-    timers[key] = RepeatingTimer(
-            lib_protocol.TIMEOUT_TIMER,
-            _send_callback,
-            socket_connected,
-            address,
-            data_to_send,
-            key,
-    )
-    timers[key].start()
-
-
-def send_file_selective_repeat(
+def send_file(
         socket_connected: socket.socket, filename: str, address: str
 ):
     eof_counter = 0
@@ -54,7 +19,7 @@ def send_file_selective_repeat(
     with open(filename, "rb") as f:
 
         # Revive ACK from server
-        logging.info("Starting send with select and repeat...")
+        logging.info("Starting send with selective repeat...")
 
         file_size = os.stat(filename).st_size
         while True:
@@ -62,14 +27,15 @@ def send_file_selective_repeat(
 
                 logging.info("Sending ACK...")
                 ack = bytes(
-                    lib_protocol.MSG_FILE_SIZE + encode_selective_repeat(file_size),
+                    lib_protocol.MSG_FILE_SIZE + encode(file_size),
                     lib_protocol.ENCODING,
                 )
                 socket_connected.sendto(ack, address)
 
                 logging.info("Receiving SYNC-ACK...")
                 sync_ack = str(
-                    socket_connected.recvfrom(BUFFER_SIZE)[0], lib_protocol.ENCODING
+                    socket_connected.recvfrom(lib_utils.BUFFER_SIZE)[0],
+                    lib_protocol.ENCODING
                 )
 
                 if sync_ack == lib_protocol.MSG_FILE_SIZE_ACK:
@@ -85,25 +51,27 @@ def send_file_selective_repeat(
 
         # Firstly, I send data WINDOW_SIZE times
         last_chunk_sent = 0
-        key = encode_selective_repeat(last_chunk_sent)
-        data_to_send = read_file(f, key)
+        key = encode(last_chunk_sent)
+        data_to_send = lib_utils.read_file(f, key)
         while data_to_send and last_chunk_sent < lib_protocol.WINDOW_SIZE:
             logging.info("Sending: \n\tdata: {}\n\tkey:{}".format(data_to_send, key))
-            _send_data(timers, socket_connected, address, data_to_send, key)
+            lib_utils.send_data(timers, socket_connected, address, data_to_send, key)
             last_chunk_sent += 1
-            key = encode_selective_repeat(last_chunk_sent)
-            data_to_send = read_file(f, key)
+            key = encode(last_chunk_sent)
+            data_to_send = lib_utils.read_file(f, key)
 
         # Then ...
-        latest_ack = 0
         while data_to_send:
             try:
-                # Receive ack from server and cancel all the timers of the recieved data
-                ack, address = socket_connected.recvfrom(BUFFER_SIZE)
+                # Receive ack from server and cancel all the timers of the received data
+                ack, address = socket_connected.recvfrom(lib_utils.BUFFER_SIZE)
                 ack = int(ack)
                 timers.pop(ack)
                 min_ack = min(timers.keys())
                 window_shifts = last_chunk_sent - min_ack + 1
+                # Si se mando todo, como hago para cortar? me tengo que quedar en este while, no puedo seguir iterando
+                # tengo que recibir cierta cantidad de veces que se termino de mandar, tengo que tener cuidado
+                # si recibo algo que no es int y lo quiero pasar a int, ahi revienta
                 if window_shifts < lib_protocol.WINDOW_SIZE:
                     displacements = \
                         lib_protocol.WINDOW_SIZE \
@@ -111,28 +79,27 @@ def send_file_selective_repeat(
                         - window_shifts
                     for i in range(last_chunk_sent, displacements):
                         logging.info(
-                            "Sending: \n\tdata: {}\n\tkey:{}".format(data_to_send, key)
+                            f"Sending: \n\tdata: {data_to_send}\n\tkey:{key}"
                         )
-                        _send_data(timers, socket_connected, address, data_to_send, key)
+                        lib_utils.send_data(timers, socket_connected, address, data_to_send, key)
                         last_chunk_sent += 1
-                        key = encode_selective_repeat(last_chunk_sent)
-                        data_to_send = read_file(f, key)
+                        # ToDo: mandar el ack nomas, o no se que me mandan ellos la verdad
+                        key = encode(last_chunk_sent)
+                        data_to_send = lib_utils.read_file(f, key)
 
             except socket.timeout:
 
                 # If one socket timed out
-                if eof_counter > ENDING_LIMIT:
+                if eof_counter > lib_utils.ENDING_LIMIT:
                     logging.info(
-                        "Timeout: socket tried {} times to receive an ACK and will not try again".format(
-                            ENDING_LIMIT
-                        )
+                        f"Timeout: socket tried {lib_utils.ENDING_LIMIT} "
+                        f"times to receive an ACK and will not try again"
                     )
                     break
-                elif len(ack) < BUFFER_SIZE - len(key):
+                elif len(ack) < lib_utils.BUFFER_SIZE - len(key):
                     logging.info(
-                        "Timeout: socket tried {} times to receive an ACK.".format(
-                            eof_counter
-                        )
+                        f"Timeout: socket tried {eof_counter} times "
+                        f"to receive an ACK."
                     )
                     eof_counter += 1
                 else:
@@ -140,16 +107,12 @@ def send_file_selective_repeat(
                     logging.info("Timeout: socket did not receive data.")
 
 
-def read_file(f: TextIOWrapper, key):
-    return f.read(BUFFER_SIZE - len(key))
-
-
-def _get_message_selective_repeat(message: bytes):
+def _get_message(message: bytes):
     return [int(message[: lib_protocol.SEQ_LEN]), message[lib_protocol.SEQ_LEN:]]
 
 
-def receive_file_selective_repeat(socket_connected, path: str, address):
-    logging.info("Starting receive with select and repeat...")
+def receive_file(socket_connected, path: str, address):
+    logging.info("Starting receive with selective repeat...")
 
     recv_buffer = []
     heapq.heapify(recv_buffer)
@@ -158,7 +121,7 @@ def receive_file_selective_repeat(socket_connected, path: str, address):
     logging.info("Receiving file length...")
     while True:
         try:
-            datachunk = socket_connected.recvfrom(BUFFER_SIZE)[0]
+            datachunk = socket_connected.recvfrom(lib_utils.BUFFER_SIZE)[0]
             logging.info("Received a datachunk: {}".format(datachunk))
             if datachunk[: len(lib_protocol.MSG_FILE_SIZE)] == bytes(
                     lib_protocol.MSG_FILE_SIZE, lib_protocol.ENCODING
@@ -182,8 +145,8 @@ def receive_file_selective_repeat(socket_connected, path: str, address):
     with open(path, "wb") as f:
         while wanted_seq_number * lib_protocol.CHUNK_SIZE < file_size:
             try:
-                seq_number, datachunk = _get_message_selective_repeat(
-                    socket_connected.recvfrom(BUFFER_SIZE)[0]
+                seq_number, datachunk = _get_message(
+                    socket_connected.recvfrom(lib_utils.BUFFER_SIZE)[0]
                 )
                 logging.info(
                     "Receiving:\n\tkey: {}\n\tdata: {}".format(seq_number, datachunk)
@@ -209,7 +172,7 @@ def receive_file_selective_repeat(socket_connected, path: str, address):
                 "Sending ack with wanted sequence number: {}.".format(wanted_seq_number)
             )
             key = bytes(
-                encode_selective_repeat(wanted_seq_number),
+                encode(wanted_seq_number),
                 lib_protocol.ENCODING,
             )
             socket_connected.sendto(key, address)
