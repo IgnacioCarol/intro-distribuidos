@@ -1,7 +1,7 @@
 import socket
 import heapq
-import lib.utils as lib_utils
-import lib.protocol as lib_protocol
+import src.lib.utils as lib_utils
+import src.lib.protocol as lib_protocol
 import logging
 
 FINISH_RECEIVING = 99999999
@@ -36,11 +36,16 @@ def send_file(
             data_to_send = lib_utils.read_file(f, key)
 
         # Then ...
+        ack = ""
         while len(timers):
             try:
                 # Receive ack from server and cancel all the timers of the received data
                 ack, address = socket_connected.recvfrom(lib_utils.BUFFER_SIZE)
-                timers.pop(str(ack, lib_protocol.ENCODING)).cancel()
+                ack_value = str(ack, lib_protocol.ENCODING)
+                if ack_value not in timers.keys():
+                    continue
+                eof_counter = 0
+                timers.pop(ack_value).cancel()
                 min_ack = int(min(timers.keys())) if len(timers) else last_chunk_sent
                 window_shifts = last_chunk_sent - min_ack + 1
                 if window_shifts < lib_protocol.WINDOW_SIZE and data_to_send:
@@ -121,12 +126,14 @@ def receive_file(socket_connected, path: str, address):
     logging.info("Starting receiving...")
     wanted_seq_number = 0
     seq_number = 0
+    error_counter = 0
     with open(path, "wb") as f:
         while seq_number != FINISH_RECEIVING:
             try:
                 seq_number, datachunk = _get_message(
                     socket_connected.recvfrom(lib_utils.BUFFER_SIZE)[0]
                 )
+                error_counter = 0
                 logging.info(
                     "Receiving:\n\tkey: {}\n\tdata: {}".format(seq_number, datachunk)
                 )
@@ -141,11 +148,16 @@ def receive_file(socket_connected, path: str, address):
                 elif seq_number == wanted_seq_number:
                     f.write(datachunk)
                     wanted_seq_number = seq_number + 1
-                    while len(recv_buffer) > 0 and recv_buffer[0] == wanted_seq_number:
+                    while len(recv_buffer) > 0 and recv_buffer[0][0] == wanted_seq_number:
                         f.write(heapq.heappop(recv_buffer)[1])
-                        wanted_seq_number = seq_number + 1
-            except socket.timeout:
+                        wanted_seq_number = wanted_seq_number + 1
+            except socket.timeout as e:
                 logging.info("Timeout")
+                error_counter += 1
+                if error_counter > 3:
+                    logging.error(f"more than {error_counter - 1} timeouts, aborting execution")
+                    raise e
+                continue
 
             logging.info(
                 "Sending ack with wanted sequence number: {}.".format(seq_number)
