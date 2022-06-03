@@ -27,6 +27,9 @@ class Upload:
         except lib_errors.ServerNotAvailable:
             logging.info("[Upload] ERROR: Server not available...")
             return
+        except OSError:
+            logging.debug("[Download] Socket closed")
+            return
         except (FileNotFoundError, IOError) as e:
             logging.info("[Upload] ERROR: Client file not found.")
             raise e
