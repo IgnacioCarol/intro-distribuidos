@@ -84,9 +84,9 @@ def send_file(socket_connected: socket.socket, filename: str, address: str):
                     )
 
         eof_counter = 0
-        if not error_flag:
-            logging.info(f"Finished sending file {filename}")
+        if error_flag:
             return
+        logging.info(f"Finished sending file {filename}")
         while not error_flag:
             try:
                 socket_connected.sendto(

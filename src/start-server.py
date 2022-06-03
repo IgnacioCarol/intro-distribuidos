@@ -15,7 +15,7 @@ if __name__ == "__main__":
             s.listen()
         elif args.arquitecture == "stop_and_wait":
             logging.info("[server] Arquitecture stop and wait")
-            s = ServerStopAndWait(args.host, args.port, args.storage)  # TO-DO
+            s = ServerStopAndWait(args.host, args.port, args.storage)
             handler.listener(s.close)
             s.listen()
         else:
