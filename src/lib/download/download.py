@@ -1,5 +1,4 @@
 import socket
-from time import sleep
 import lib.errors as lib_errors
 import lib.protocol as lib_protocol
 import logging
@@ -48,7 +47,6 @@ class Download:
             )
             try:
                 data, addr = self.client.recvfrom(lib_protocol.BUFFER_SIZE)
-                sleep(2)
                 parsed_data = str(data, lib_protocol.ENCODING)
                 if parsed_data != lib_protocol.MSG_CONNECTION_ACK:
                     logging.info("Error: " + parsed_data)
