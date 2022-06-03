@@ -84,7 +84,11 @@ class Server:
         self.stopped = True
         self.server.close()
         logging.info("[server] Server closed.")
-        sys.exit()
+        self.__join_connections()
+
+    def __join_connections(self):
+        for connection in self.connections:
+            connection.join()
 
 
 class _UploaderStopAndWait(_Uploader):
