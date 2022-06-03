@@ -1,8 +1,6 @@
 import socket
 import lib.errors as lib_errors
 import lib.protocol as lib_protocol
-import lib.stop_wait as stop_and_wait
-import lib.selective_repeat as selective_repeat
 import logging
 
 
@@ -66,13 +64,3 @@ class Upload:
     def close(self):
         logging.info("[Upload] Client is closing...")
         self.client.close()
-
-
-class UploadStopAndWait(Upload):
-    def _send(self, addr):
-        stop_and_wait.send_file(self.client, self.filename, addr)
-
-
-class UploadSelectiveRepeat(Upload):
-    def _send(self, addr):
-        selective_repeat.send_file(self.client, self.filename, addr)
