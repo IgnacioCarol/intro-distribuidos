@@ -1,8 +1,6 @@
-import os
 import socket
+from time import sleep
 import lib.errors as lib_errors
-import lib.selective_repeat as selective_repeat
-import lib.stop_wait as stop_and_wait
 import lib.protocol as lib_protocol
 import logging
 
@@ -50,6 +48,7 @@ class Download:
             )
             try:
                 data, addr = self.client.recvfrom(lib_protocol.BUFFER_SIZE)
+                sleep(2)
                 parsed_data = str(data, lib_protocol.ENCODING)
                 if parsed_data != lib_protocol.MSG_CONNECTION_ACK:
                     logging.info("Error: " + parsed_data)
@@ -63,14 +62,3 @@ class Download:
     def close(self):
         logging.info("[Download] Client is closing...")
         self.client.close()
-
-class DownloadStopAndWait(Download):
-    def _receive(self, addr):
-        file_path = "{}/{}".format(self.path, self.filename)
-        return stop_and_wait.receive_file(self.client, file_path, addr, set())
-
-
-class DownloadSelectiveRepeat(Download):
-    def _receive(self, addr):
-        file_path = "{}/{}".format(os.getcwd(), self.filename)
-        return selective_repeat.receive_file(self.client, file_path, addr)

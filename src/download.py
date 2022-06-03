@@ -1,5 +1,6 @@
 from lib.download.download_cli import DownloadCLI
-from lib.download.download import DownloadSelectiveRepeat, DownloadStopAndWait
+from lib.download.download_selective_repeat import DownloadSelectiveRepeat
+from lib.download.download_stop_and_wait import DownloadStopAndWait
 from lib.handler import InterruptHandler
 from lib.logger import Logger
 import logging
