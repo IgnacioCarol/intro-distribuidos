@@ -1,5 +1,4 @@
 import socket
-import sys
 import threading
 import logging
 import lib.archive as arc
@@ -10,6 +9,7 @@ import lib.protocol as lib_protocol
 from lib.start_server.downloader import _Downloader
 from lib.start_server.uploader import _Uploader
 from typing import List
+
 
 def get_data(data: bytes) -> List[str]:
     data = str(data, lib_protocol.ENCODING).split()

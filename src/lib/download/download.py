@@ -25,7 +25,7 @@ class Download:
             logging.info("[Download] ERROR: Server not available...")
             return
         except OSError:
-            logging.debug("[Download] se cerro el socket")
+            logging.debug("[Download] Socket closed")
             return
         except (FileNotFoundError, IOError):
             logging.debug("[Download] ERROR: Client file not found.")
@@ -41,19 +41,22 @@ class Download:
         """
         addr = ()
         while True:
+            logging.debug("[Download] Trying to send download intention to server")
             self.client.sendto(
                 bytes(f"{intention} {self.filename}", lib_protocol.ENCODING),
                 (self.host, self.port),
             )
             try:
+                logging.debug("[Download] Client tries to recieve ACK.")
                 data, addr = self.client.recvfrom(lib_protocol.BUFFER_SIZE)
                 parsed_data = str(data, lib_protocol.ENCODING)
                 if parsed_data != lib_protocol.MSG_CONNECTION_ACK:
-                    logging.info("Error: " + parsed_data)
+                    logging.debug("[Download]Error: " + parsed_data)
                     raise lib_errors.ServerNotAvailable()
+                logging.debug("[Download] Client recieved ACK.")
                 break
             except socket.timeout:
-                logging.debug("[Download]timeout al esperar un packete de server")
+                logging.debug("[Download] Timeout waiting package from server")
                 continue
         return addr
 

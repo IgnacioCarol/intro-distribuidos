@@ -36,8 +36,7 @@ class InterruptHandler(object):
         self.released = True
 
     def _handleFinish(self):
-        # TODO - Integrar con el cierre de los sockets.
-        logging.info("Closing connection.")
+        logging.debug("[InterruptHandler] Closing connection.")
         for f in self.functions:
             f()
 
