@@ -4,7 +4,7 @@ from typing import Dict
 from lib.timer import RepeatingTimer
 import lib.protocol as lib_protocol
 
-BUFFER_SIZE = 1024
+BUFFER_SIZE = 8192
 ENDING_LIMIT = 10  # times to wait for the ack when finishing sending the file
 
 
