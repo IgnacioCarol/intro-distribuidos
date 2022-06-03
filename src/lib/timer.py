@@ -8,6 +8,7 @@ class RepeatingTimer(object):
         self.args = args
         self.kwargs = kwargs
         self.timer = None
+        self.nack = 0
 
     def callback(self):
         self.func(*self.args, **self.kwargs)
@@ -17,5 +18,9 @@ class RepeatingTimer(object):
         self.timer.cancel()
 
     def start(self):
+        self.nack += 1
+        if self.nack > 20:
+            self.cancel()
+            return
         self.timer = Timer(self.interval, self.callback)
         self.timer.start()
