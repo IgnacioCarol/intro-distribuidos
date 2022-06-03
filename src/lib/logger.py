@@ -5,7 +5,7 @@ class Logger:
     def __init__(self, verbose, quiet):
 
         if quiet:
-            logging.basicConfig(level=logging.WARNING)
+            logging.basicConfig(level=logging.INFO)
         elif verbose:
             logging.basicConfig(level=logging.DEBUG)
         else:
