@@ -1,7 +1,5 @@
 import socket
 import lib.errors as lib_errors
-import lib.selective_repeat as selective_repeat
-import lib.stop_wait as stop_and_wait
 import lib.protocol as lib_protocol
 import logging
 
@@ -26,9 +24,12 @@ class Download:
         except lib_errors.ServerNotAvailable:
             logging.info("[Download] ERROR: Server not available...")
             return
-        except (FileNotFoundError, IOError) as e:
-            logging.info("[Download] ERROR: Client file not found.")
-            raise e
+        except OSError:
+            logging.debug("[Download] Socket closed")
+            return
+        except (FileNotFoundError, IOError):
+            logging.debug("[Download] ERROR: Client file not found.")
+            return
         except Exception as e:
             logging.info("[Download] ERROR: Unexpected exception: {}.".format(e))
             return
@@ -40,29 +41,25 @@ class Download:
         """
         addr = ()
         while True:
+            logging.debug("[Download] Trying to send download intention to server")
             self.client.sendto(
                 bytes(f"{intention} {self.filename}", lib_protocol.ENCODING),
                 (self.host, self.port),
             )
             try:
+                logging.debug("[Download] Client tries to recieve ACK.")
                 data, addr = self.client.recvfrom(lib_protocol.BUFFER_SIZE)
                 parsed_data = str(data, lib_protocol.ENCODING)
                 if parsed_data != lib_protocol.MSG_CONNECTION_ACK:
-                    logging.info("Error: " + parsed_data)
+                    logging.debug("[Download]Error: " + parsed_data)
                     raise lib_errors.ServerNotAvailable()
+                logging.debug("[Download] Client recieved ACK.")
                 break
             except socket.timeout:
+                logging.debug("[Download] Timeout waiting package from server")
                 continue
         return addr
 
-
-class DownloadStopAndWait(Download):
-    def _receive(self, addr):
-        file_path = "{}/{}".format(self.path, self.filename)
-        return stop_and_wait.receive_file(self.client, file_path, addr, set())
-
-
-class DownloadSelectiveRepeat(Download):
-    def _receive(self, addr):
-        file_path = "{}/{}".format(self.path, self.filename)
-        return selective_repeat.receive_file(self.client, file_path, addr)
+    def close(self):
+        logging.info("[Download] Client is closing...")
+        self.client.close()

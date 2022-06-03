@@ -1,22 +1,25 @@
 import argparse
 
 
-class StartServerCLI:
-    """Interfaz del servidor"""
+class UploadCLI:
+    """UPLOAD: Transferencia de un archivo del cliente hacia el servidor."""
 
     def __init__(self):
         self.parser = argparse.ArgumentParser(
-            prog="start-server",
-            usage="start-server [ - h ] [ - v | -q ] [ - H ADDR ] [ - p PORT ] [- s DIRPATH ]",
-            description="Interfaz del servidor",
+            prog="upload",
+            usage="upload [ - h ] [ - v | -q ] [ - H ADDR ] [ - p PORT ] [ - s FILEPATH ] [ - n FILENAME ]",
+            description="UPLOAD: Transferencia de un archivo del cliente hacia el servidor.",
         )
 
         self.parser.add_argument(
-            "-v", "--verbose", action="store", help="verbose increase output verbosity"
+            "-v",
+            "--verbose",
+            action="store_true",
+            help="verbose increase output verbosity",
         )
 
         self.parser.add_argument(
-            "-q", "--quiet", action="store", help="quiet decrease output verbosity"
+            "-q", "--quiet", action="store_true", help="quiet decrease output verbosity"
         )
 
         self.parser.add_argument(
@@ -27,8 +30,10 @@ class StartServerCLI:
             "-p", "--port", action="store", help="server port", type=int, required=True
         )
 
+        self.parser.add_argument("-s", "--src", action="store", help="source file path")
+
         self.parser.add_argument(
-            "-s", "--storage", action="store", help="storage dir path", required=True
+            "-n", "--name", action="store", help="file name", required=True
         )
 
         self.parser.add_argument(
