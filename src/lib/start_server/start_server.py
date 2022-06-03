@@ -1,4 +1,5 @@
 import socket
+import sys
 import threading
 import lib.archive as arc
 import lib.errors as lib_errors
@@ -223,7 +224,7 @@ class Server:
         self.stopped = True
         self.server.close()
         logging.info("[server] Server closed.")
-        self.__join_connections()
+        sys.exit()
 
     def __join_connections(self):
         for connection in self.connections:

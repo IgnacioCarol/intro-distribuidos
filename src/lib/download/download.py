@@ -27,6 +27,9 @@ class Download:
         except lib_errors.ServerNotAvailable:
             logging.info("[Download] ERROR: Server not available...")
             return
+        except OSError:
+            logging.debug("[Download] se cerro el socket")
+            return
         except (FileNotFoundError, IOError) as e:
             logging.info("[Download] ERROR: Client file not found.")
             raise e
@@ -53,9 +56,13 @@ class Download:
                     raise lib_errors.ServerNotAvailable()
                 break
             except socket.timeout:
+                logging.debug("[Download]timeout al esperar un packete de server")
                 continue
         return addr
 
+    def close(self):
+        logging.info("[Download] Client is closing...")
+        self.client.close()
 
 class DownloadStopAndWait(Download):
     def _receive(self, addr):

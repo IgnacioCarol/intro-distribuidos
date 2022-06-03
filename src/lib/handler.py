@@ -34,7 +34,6 @@ class InterruptHandler(object):
             signal.signal(sig, self.original_handlers[sig])
 
         self.released = True
-        # sys.exit()
 
     def _handleFinish(self):
         # TODO - Integrar con el cierre de los sockets.

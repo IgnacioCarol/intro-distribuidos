@@ -13,11 +13,13 @@ if __name__ == "__main__":
             s = DownloadSelectiveRepeat(
                 args.host, args.port, args.name, args.dst
             )
+            handler.listener(s.close)
             s.receive()
         elif args.arquitecture == "stop_and_wait":
             s = DownloadStopAndWait(
                 args.host, args.port, args.name, args.dst
             )
+            handler.listener(s.close)
             s.receive()
         else:
             logging.info(
