@@ -42,22 +42,22 @@ class Upload:
 
         addr = ()
         while True:
-            logging.info("[Upload] Client sends its intention of uploading.")
+            logging.debug("[Upload] Trying to send download intention to server.")
             self.client.sendto(
                 bytes(f"{intention} {self.filename}", lib_protocol.ENCODING),
                 (self.host, self.port),
             )
             try:
-                logging.info("[Upload] Client tries to recieve ACK.")
+                logging.debug("[Upload] Client tries to recieve ACK.")
                 data, addr = self.client.recvfrom(1024)
                 parsed_data = str(data, lib_protocol.ENCODING)
                 if parsed_data != lib_protocol.MSG_CONNECTION_ACK:
-                    logging.info("[Upload] Client did not recieve ACK.")
+                    logging.debug("[Upload] Client did not recieve ACK.")
                     raise lib_errors.ServerNotAvailable()
-                logging.info("[Upload] Client recieved ACK.")
+                logging.debug("[Upload] Client recieved ACK.")
                 break
             except socket.timeout:
-                logging.info("[Upload] Client timeout.")
+                logging.debug("[Upload] Client timeout.")
                 continue
         return addr
 
