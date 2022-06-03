@@ -14,7 +14,7 @@ class StartServerCLI:
         self.parser.add_argument(
             "-v",
             "--verbose",
-            action="store_false",
+            action="store_true",
             help="verbose increase output verbosity",
         )
 
