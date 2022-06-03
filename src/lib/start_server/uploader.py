@@ -2,6 +2,8 @@ import socket
 import lib.archive as arc
 import lib.protocol as lib_protocol
 import logging
+
+
 class _Uploader:
     def __init__(self, storage: str, addr, file_name: str, archive):
         self.storage = storage
@@ -12,7 +14,7 @@ class _Uploader:
         self.archive = archive
 
     def _receive(self):
-        raise Exception('not defined')
+        raise Exception("not defined")
 
     def _handle_release(self):
         try:

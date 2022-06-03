@@ -4,6 +4,7 @@ import lib.archive as arc
 import lib.protocol as lib_protocol
 import logging
 
+
 class _Downloader:
     def __init__(self, storage: str, addr, file_name: str, archive):
         self.storage = storage

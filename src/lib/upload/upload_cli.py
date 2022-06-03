@@ -12,7 +12,10 @@ class UploadCLI:
         )
 
         self.parser.add_argument(
-            "-v", "--verbose", action="store_false", help="verbose increase output verbosity"
+            "-v",
+            "--verbose",
+            action="store_false",
+            help="verbose increase output verbosity",
         )
 
         self.parser.add_argument(
