@@ -12,11 +12,11 @@ class DownloadCLI:
         )
 
         self.parser.add_argument(
-            "-v", "--verbose", action="store", help="verbose increase output verbosity"
+            "-v", "--verbose", action="store_false", help="verbose increase output verbosity"
         )
 
         self.parser.add_argument(
-            "-q", "--quiet", action="store", help="quiet decrease output verbosity"
+            "-q", "--quiet", action="store_true", help="quiet decrease output verbosity"
         )
 
         self.parser.add_argument(
