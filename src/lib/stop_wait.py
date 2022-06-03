@@ -37,6 +37,7 @@ def _get_message(message: bytes) -> List[bytes]:
 
 def receive_file(socket_connected, path: str, address, processed):
     logging.debug("Receiving send with stop and wait...")
+    eof_counter = 0
     with open(path, "wb") as f:
         logging.debug("File opened")
         while True:
@@ -45,7 +46,12 @@ def receive_file(socket_connected, path: str, address, processed):
                     socket_connected.recvfrom(lib_utils.BUFFER_SIZE)[0]
                 )
             except socket.timeout:
+                eof_counter += 1
+                if eof_counter > lib_utils.ENDING_LIMIT:
+                    logging.error("ERROR: could not receive a file")
+                    return
                 continue
+            eof_counter = 0
             logging.debug("Receiving: \n\tdata: {}\n\tkey:{}\n".format(datachunk, key))
             socket_connected.sendto(key, address)
             if key in processed:
