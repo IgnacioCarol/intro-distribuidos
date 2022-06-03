@@ -33,7 +33,7 @@ def send_file(socket_connected: socket.socket, filename: str, address: str):
             key = encode(last_chunk_sent)
             data_to_send = lib_utils.read_file(f, key)
 
-        logging.debug("Finished send first chunk") 
+        logging.debug("Finished send first chunk")
         # Then ...
         ack = ""
         while len(timers):
@@ -48,7 +48,9 @@ def send_file(socket_connected: socket.socket, filename: str, address: str):
                 min_ack = int(min(timers.keys())) if len(timers) else last_chunk_sent
                 window_shifts = last_chunk_sent - min_ack + 1
                 if window_shifts < lib_protocol.WINDOW_SIZE and data_to_send:
-                    displacements = (lib_protocol.WINDOW_SIZE + last_chunk_sent - window_shifts)
+                    displacements = (
+                        lib_protocol.WINDOW_SIZE + last_chunk_sent - window_shifts
+                    )
                     for i in range(last_chunk_sent, displacements):
                         logging.debug(f"Sending: \n\tdata: {data_to_send}\n\tkey:{key}")
                         lib_utils.send_data(
@@ -77,7 +79,9 @@ def send_file(socket_connected: socket.socket, filename: str, address: str):
                     eof_counter += 1
                 else:
                     eof_counter += 1
-                    logging.debug(f"Finished sending file with stop and wait on {filename}.")
+                    logging.debug(
+                        f"Finished sending file with stop and wait on {filename}."
+                    )
 
         eof_counter = 0
         if not error_flag:
@@ -85,7 +89,9 @@ def send_file(socket_connected: socket.socket, filename: str, address: str):
             return
         while not error_flag:
             try:
-                socket_connected.sendto(bytes(f"{FINISH_RECEIVING}", lib_protocol.ENCODING), address)
+                socket_connected.sendto(
+                    bytes(f"{FINISH_RECEIVING}", lib_protocol.ENCODING), address
+                )
                 socket_connected.recvfrom(lib_utils.BUFFER_SIZE)
                 break
             except socket.timeout:
@@ -128,8 +134,13 @@ def receive_file(socket_connected, path: str, address):
                     socket_connected.recvfrom(lib_utils.BUFFER_SIZE)[0]
                 )
                 error_counter = 0
-                logging.debug("Receiving:\n\tkey: {}\n\tdata: {}".format(seq_number, datachunk))
-                if (seq_number > wanted_seq_number and len(recv_buffer) <= lib_protocol.WINDOW_SIZE):
+                logging.debug(
+                    "Receiving:\n\tkey: {}\n\tdata: {}".format(seq_number, datachunk)
+                )
+                if (
+                    seq_number > wanted_seq_number
+                    and len(recv_buffer) <= lib_protocol.WINDOW_SIZE
+                ):
                     # Nos fijamos si lo tenemos en el heap
                     if not _isInHeap(recv_buffer, seq_number):
                         heapq.heappush(recv_buffer, (seq_number, datachunk))
@@ -137,23 +148,33 @@ def receive_file(socket_connected, path: str, address):
                     f.write(datachunk)
                     wanted_seq_number = seq_number + 1
                     logging.debug("Flushing buffer.")
-                    while (len(recv_buffer) > 0 and recv_buffer[0][0] == wanted_seq_number):
+                    while (
+                        len(recv_buffer) > 0 and recv_buffer[0][0] == wanted_seq_number
+                    ):
                         f.write(heapq.heappop(recv_buffer)[1])
                         wanted_seq_number = wanted_seq_number + 1
             except socket.timeout as e:
                 logging.debug("Timeout on receive file.")
                 error_counter += 1
                 if error_counter > 3:
-                    logging.debug(f"More than {error_counter - 1} timeouts, aborting execution")
+                    logging.debug(
+                        f"More than {error_counter - 1} timeouts, aborting execution"
+                    )
                     raise e
                 continue
 
-            logging.debug("Sending ack with wanted sequence number: {}.".format(seq_number))
+            logging.debug(
+                "Sending ack with wanted sequence number: {}.".format(seq_number)
+            )
 
-            key = bytes(encode(seq_number),lib_protocol.ENCODING,)
+            key = bytes(
+                encode(seq_number),
+                lib_protocol.ENCODING,
+            )
             socket_connected.sendto(key, address)
 
     logging.info("Finished receiving and storing file at {}".format(path))
 
+
 def _isInHeap(recv_buffer, seq_number):
-     next((True for x in recv_buffer if x[0] == seq_number), False)
+    next((True for x in recv_buffer if x[0] == seq_number), False)
