@@ -21,11 +21,11 @@ def _send_callback(socket_connected, address, data_to_send, key):
 
 
 def send_data(
-        timers: Dict[str, RepeatingTimer],
-        socket_connected: socket.socket,
-        address: str,
-        data_to_send: str,
-        key: str,
+    timers: Dict[str, RepeatingTimer],
+    socket_connected: socket.socket,
+    address: str,
+    data_to_send: str,
+    key: str,
 ):
     _send_callback(socket_connected, address, data_to_send, key)
     timers[key] = RepeatingTimer(

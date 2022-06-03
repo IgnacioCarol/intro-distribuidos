@@ -11,15 +11,11 @@ if __name__ == "__main__":
     logger = Logger(args.verbose, args.quiet)
     with InterruptHandler() as handler:
         if args.arquitecture == "select_and_repeat":
-            s = DownloadSelectiveRepeat(
-                args.host, args.port, args.name, args.dst
-            )
+            s = DownloadSelectiveRepeat(args.host, args.port, args.name, args.dst)
             handler.listener(s.close)
             s.receive()
         elif args.arquitecture == "stop_and_wait":
-            s = DownloadStopAndWait(
-                args.host, args.port, args.name, args.dst
-            )
+            s = DownloadStopAndWait(args.host, args.port, args.name, args.dst)
             handler.listener(s.close)
             s.receive()
         else:

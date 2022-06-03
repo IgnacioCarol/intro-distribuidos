@@ -14,7 +14,7 @@ if __name__ == "__main__":
             handler.listener(s.close)
             s.send()
         elif args.arquitecture == "stop_and_wait":
-            s = UploadStopAndWait(args.host, args.port, args.name) 
+            s = UploadStopAndWait(args.host, args.port, args.name)
             handler.listener(s.close)
             s.send()
         else:
