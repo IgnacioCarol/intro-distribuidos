@@ -19,7 +19,9 @@ class Archive:
     """This class implements a system that keeps track of files in use by a clients"""
 
     lock = th.Lock()
-    ip_by_file: Dict[str, Tuple[Set[str], int, bool]] = {}  # key: filename, value : ({ownerips}, rcount, bool)
+    ip_by_file: Dict[
+        str, Tuple[Set[str], int, bool]
+    ] = {}  # key: filename, value : ({ownerips}, rcount, bool)
 
     def set_ownership(self, ip, file_name, w):
         self.lock.acquire()

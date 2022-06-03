@@ -29,7 +29,6 @@ test:
 # For exceptions change .flake file
 reformat:
 	echo "Reformatting with back"
-	black *.py
 	black */*.py
 	black src/lib/*.py
 	black src/*/*.py

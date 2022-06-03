@@ -12,9 +12,7 @@ def encode(key: int):
     return f"{key:{lib_protocol.PADDING}>{lib_protocol.SEQ_LEN}}"
 
 
-def send_file(
-        socket_connected: socket.socket, filename: str, address: str
-):
+def send_file(socket_connected: socket.socket, filename: str, address: str):
     eof_counter = 0
     error_flag = False
     with open(filename, "rb") as f:
@@ -50,15 +48,14 @@ def send_file(
                 min_ack = int(min(timers.keys())) if len(timers) else last_chunk_sent
                 window_shifts = last_chunk_sent - min_ack + 1
                 if window_shifts < lib_protocol.WINDOW_SIZE and data_to_send:
-                    displacements = \
-                        lib_protocol.WINDOW_SIZE \
-                        + last_chunk_sent \
-                        - window_shifts
+                    displacements = (
+                        lib_protocol.WINDOW_SIZE + last_chunk_sent - window_shifts
+                    )
                     for i in range(last_chunk_sent, displacements):
-                        logging.info(
-                            f"Sending: \n\tdata: {data_to_send}\n\tkey:{key}"
+                        logging.info(f"Sending: \n\tdata: {data_to_send}\n\tkey:{key}")
+                        lib_utils.send_data(
+                            timers, socket_connected, address, data_to_send, key
                         )
-                        lib_utils.send_data(timers, socket_connected, address, data_to_send, key)
                         last_chunk_sent += 1
                         key = encode(last_chunk_sent)
                         data_to_send = lib_utils.read_file(f, key)
@@ -91,8 +88,7 @@ def send_file(
         while not error_flag:
             try:
                 socket_connected.sendto(
-                    bytes(f"{FINISH_RECEIVING}", lib_protocol.ENCODING),
-                    address
+                    bytes(f"{FINISH_RECEIVING}", lib_protocol.ENCODING), address
                 )
                 socket_connected.recvfrom(lib_utils.BUFFER_SIZE)
                 break
@@ -115,7 +111,7 @@ def send_file(
 
 
 def _get_message(message: bytes):
-    return [int(message[: lib_protocol.SEQ_LEN]), message[lib_protocol.SEQ_LEN:]]
+    return [int(message[: lib_protocol.SEQ_LEN]), message[lib_protocol.SEQ_LEN :]]
 
 
 def receive_file(socket_connected, path: str, address):
@@ -139,24 +135,28 @@ def receive_file(socket_connected, path: str, address):
                     "Receiving:\n\tkey: {}\n\tdata: {}".format(seq_number, datachunk)
                 )
                 if (
-                        seq_number > wanted_seq_number
-                        and len(recv_buffer) <= lib_protocol.WINDOW_SIZE
+                    seq_number > wanted_seq_number
+                    and len(recv_buffer) <= lib_protocol.WINDOW_SIZE
                 ):
                     if not next(
-                            (True for x in recv_buffer if x[0] == seq_number), False
+                        (True for x in recv_buffer if x[0] == seq_number), False
                     ):
                         heapq.heappush(recv_buffer, (seq_number, datachunk))
                 elif seq_number == wanted_seq_number:
                     f.write(datachunk)
                     wanted_seq_number = seq_number + 1
-                    while len(recv_buffer) > 0 and recv_buffer[0][0] == wanted_seq_number:
+                    while (
+                        len(recv_buffer) > 0 and recv_buffer[0][0] == wanted_seq_number
+                    ):
                         f.write(heapq.heappop(recv_buffer)[1])
                         wanted_seq_number = wanted_seq_number + 1
             except socket.timeout as e:
                 logging.info("Timeout")
                 error_counter += 1
                 if error_counter > 3:
-                    logging.error(f"more than {error_counter - 1} timeouts, aborting execution")
+                    logging.error(
+                        f"more than {error_counter - 1} timeouts, aborting execution"
+                    )
                     raise e
                 continue
 
