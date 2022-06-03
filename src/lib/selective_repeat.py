@@ -101,12 +101,6 @@ def send_file(socket_connected: socket.socket, filename: str, address: str):
                         f"times to receive an ACK and will not try again"
                     )
                     break
-                elif len(ack) < lib_utils.BUFFER_SIZE - len(key):
-                    logging.debug(
-                        f"Timeout: socket tried {eof_counter} times "
-                        f"to receive an ACK."
-                    )
-                    eof_counter += 1
                 else:
                     eof_counter += 1
                     logging.debug("Timeout: socket did not receive data.")
