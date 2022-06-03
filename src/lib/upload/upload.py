@@ -5,12 +5,13 @@ import logging
 
 
 class Upload:
-    def __init__(self, host: str, port: int, file_name):
+    def __init__(self, host: str, port: int, file_name: str, path: str):
         self.client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.host = host
         self.port = port
         self.client.settimeout(lib_protocol.TIMEOUT_UPLOAD)
         self.filename = file_name
+        self.path = path
 
     def _send(self, addr):
         pass
@@ -21,6 +22,7 @@ class Upload:
             logging.info("[Upload] Client will try to connect...")
             addr = self.connect(lib_protocol.MSG_INTENTION_UPLOAD)
             logging.info("[Upload] Client will start to send...")
+            self.filename = f"{self.path}/{self.filename}"
             self._send(addr)
         except lib_errors.ServerNotAvailable:
             logging.info("[Upload] ERROR: Server not available...")

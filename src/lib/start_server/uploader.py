@@ -68,5 +68,6 @@ class _Uploader:
         try:
             self._receive()
         except socket.timeout:
-            self._handle_release()
             return
+        finally:
+            self._handle_release()

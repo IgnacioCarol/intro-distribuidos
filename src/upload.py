@@ -11,12 +11,12 @@ if __name__ == "__main__":
     with InterruptHandler() as handler:
         if args.arquitecture == "select_and_repeat":
             logging.info("[server] Arquitecture select and repeat")
-            s = UploadSelectiveRepeat(args.host, args.port, args.name)
+            s = UploadSelectiveRepeat(args.host, args.port, args.name, args.src)
             handler.listener(s.close)
             s.send()
         elif args.arquitecture == "stop_and_wait":
             logging.info("[server] Arquitecture stop and wait")
-            s = UploadStopAndWait(args.host, args.port, args.name)
+            s = UploadStopAndWait(args.host, args.port, args.name, args.src)
             handler.listener(s.close)
             s.send()
         else:

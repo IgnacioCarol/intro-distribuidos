@@ -34,9 +34,12 @@ def _get_message(message: bytes) -> List[bytes]:
 def receive_file(socket_connected, path: str, address, processed):
     with open(path, "wb") as f:
         while True:
-            key, datachunk = _get_message(
-                socket_connected.recvfrom(lib_utils.BUFFER_SIZE)[0]
-            )
+            try:
+                key, datachunk = _get_message(
+                    socket_connected.recvfrom(lib_utils.BUFFER_SIZE)[0]
+                )
+            except socket.timeout:
+                continue
             socket_connected.sendto(key, address)
             if key in processed:
                 continue
