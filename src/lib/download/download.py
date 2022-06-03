@@ -27,9 +27,9 @@ class Download:
         except OSError:
             logging.debug("[Download] se cerro el socket")
             return
-        except (FileNotFoundError, IOError) as e:
-            logging.info("[Download] ERROR: Client file not found.")
-            raise e
+        except (FileNotFoundError, IOError):
+            logging.debug("[Download] ERROR: Client file not found.")
+            return
         except Exception as e:
             logging.info("[Download] ERROR: Unexpected exception: {}.".format(e))
             return
