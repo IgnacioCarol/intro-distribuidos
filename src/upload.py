@@ -1,5 +1,5 @@
-from src.lib.upload.upload_selective_repeat import UploadSelectiveRepeat
-from src.lib.upload.upload_stop_and_wait import UploadStopAndWait
+from lib.upload.upload_selective_repeat import UploadSelectiveRepeat
+from lib.upload.upload_stop_and_wait import UploadStopAndWait
 from lib.upload.upload_cli import UploadCLI
 from lib.handler import InterruptHandler
 from lib.logger import Logger
